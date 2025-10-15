@@ -1,12 +1,20 @@
-# 🚀 Webhook Proxy
-
-开源 webhook 代理服务，基于 **Hono** 框架和 **Cloudflare Workers** 构建。将 webhook 事件实时转换为 WebSocket 或 SSE 事件流。
-
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/lc-cn/webhook-proxy)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Stars](https://img.shields.io/github/stars/lc-cn/webhook-proxy?style=social)](https://github.com/lc-cn/webhook-proxy)
-[![CI](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml)
-[![Deploy](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml)
+<div align="center">
+  <img src="./public/logo.svg" alt="Webhook Proxy Logo" width="200" />
+  
+  # 🚀 Webhook Proxy
+  
+  开源 webhook 代理服务，基于 **Hono** 框架和 **Cloudflare Workers** 构建
+  
+  将 webhook 事件实时转换为 WebSocket 或 SSE 事件流
+  
+  [![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/lc-cn/webhook-proxy)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![GitHub Stars](https://img.shields.io/github/stars/lc-cn/webhook-proxy?style=social)](https://github.com/lc-cn/webhook-proxy)
+  
+  [![CI](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml)
+  [![Deploy](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml)
+  
+</div>
 
 ## ✨ 特性
 
@@ -559,7 +567,19 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 <div align="center">
+  <img src="./public/logo.svg" alt="Webhook Proxy" width="100" />
+  
+  <br><br>
+  
   <sub>Built with ❤️ using Hono and Cloudflare Workers</sub>
+  
   <br>
+  
   <sub>Designed for modern webhook proxy scenarios</sub>
+  
+  <br><br>
+  
+  **[⚡ 立即部署](https://deploy.workers.cloudflare.com/?url=https://github.com/lc-cn/webhook-proxy)** • 
+  **[📖 查看文档](https://hooks.zhin.dev/docs)** • 
+  **[🐛 报告问题](https://github.com/lc-cn/webhook-proxy/issues)**
 </div>
