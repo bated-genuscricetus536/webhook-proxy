@@ -20,6 +20,10 @@
   - 删除最后一个 Passkey 后自动清空列表显示
 
 ### 🐛 修复
+- 📧 **修复邮件发送 401 错误**
+  - 将发件人地址从 `noreply@hooks.zhin.dev` 改为 `noreply@zhin.dev`
+  - 匹配 DNS Domain Lockdown 记录配置的域名
+  - 解决 MailChannels 授权问题
 - 🔧 修复 CI/CD 中 pnpm lockfile 不兼容问题（统一使用 pnpm 10）
 - 📝 更新文档说明 pnpm 版本要求
 - 🔍 修复所有 TypeScript 类型检查错误

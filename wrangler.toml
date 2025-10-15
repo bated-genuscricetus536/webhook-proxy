@@ -34,6 +34,7 @@ ENVIRONMENT = "development"
 # GITLAB_CLIENT_SECRET
 # JWT_SECRET
 # SESSION_SECRET
+# RESEND_API_KEY
 
 # 开发环境配置
 [env.development]

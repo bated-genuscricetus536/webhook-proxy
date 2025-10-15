@@ -23,5 +23,6 @@ export interface Env {
   // 其他 Secrets
   JWT_SECRET: string;
   SESSION_SECRET: string;
+  RESEND_API_KEY: string;
 }
 

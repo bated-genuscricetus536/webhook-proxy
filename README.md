@@ -17,7 +17,7 @@
   - GitHub/GitLab OAuth 绑定
   - Passkey (WebAuthn) 无密码登录
   - MFA (TOTP) 双因素认证
-- 📧 **邮件验证**：集成 MailChannels 免费邮件服务
+- 📧 **邮件验证**：集成 Resend 邮件服务（3000 封/月免费额度）
 - 🔒 **安全认证**：Webhook 签名验证、Access Token
 - ⚡ **高性能**：Cloudflare 全球边缘网络
 - 💾 **持久化存储**：D1 数据库 + KV 缓存
@@ -30,7 +30,7 @@
 - **[Durable Objects](https://developers.cloudflare.com/durable-objects/)**: WebSocket 持久连接
 - **[D1 Database](https://developers.cloudflare.com/d1/)**: SQLite 数据库
 - **[KV Storage](https://developers.cloudflare.com/kv/)**: 键值存储
-- **[MailChannels](https://mailchannels.zendesk.com/)**: 免费邮件服务
+- **[Resend](https://resend.com)**: 现代邮件发送服务（3000 封/月免费）
 
 ## 🚀 快速开始
 
@@ -528,7 +528,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ### 文档
 
-- [邮件配置指南](EMAIL_SETUP.md) - MailChannels 邮件发送配置
+- [邮件配置指南](EMAIL_SETUP.md) - Resend 邮件发送配置
 
 ### 框架和平台
 

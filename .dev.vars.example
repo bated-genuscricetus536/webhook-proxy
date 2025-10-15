@@ -22,7 +22,14 @@ SESSION_SECRET=local_dev_session_secret_at_least_32_characters_long
 # JWT 密钥（必需，随机生成至少 32 字符）
 JWT_SECRET=local_dev_jwt_secret_at_least_32_characters_long
 
+# Resend API Key（用于发送邮件，如验证码）
+# 注册地址: https://resend.com/signup
+# 获取 API Key: Dashboard → API Keys → Create API Key
+# 格式: re_xxxxxxxxxxxxxxxxxxxxxxxx
+RESEND_API_KEY=your_resend_api_key
+
 # 注意：
 # - 如果不需要测试 OAuth，可以使用 test 作为占位符
 # - SESSION_SECRET 和 JWT_SECRET 必须足够长（至少 32 字符）
 # - 本地开发时，这些值不需要特别安全，但生产环境必须使用强密钥
+# - RESEND_API_KEY 是可选的，仅在需要测试邮件发送功能时配置

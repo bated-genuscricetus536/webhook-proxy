@@ -1,8 +1,9 @@
 /**
- * 邮件发送工具（使用 MailChannels API）
+ * 邮件发送工具（使用 Resend API）
  * 
- * MailChannels 是 Cloudflare Workers 推荐的免费邮件发送服务
- * 无需 API Key，直接通过 Cloudflare Workers 调用
+ * Resend 是一个专为开发者设计的邮件发送服务
+ * 免费额度：3000 封/月
+ * 官网：https://resend.com
  */
 
 export interface EmailOptions {
@@ -17,46 +18,52 @@ export interface EmailOptions {
 }
 
 /**
- * 发送邮件（通过 MailChannels）
+ * 发送邮件（通过 Resend API）
  */
-export async function sendEmail(options: EmailOptions): Promise<boolean> {
+export async function sendEmail(
+  options: EmailOptions,
+  resendApiKey: string
+): Promise<boolean> {
   const { to, subject, text, html, from } = options;
 
   // 默认发件人
-  const fromEmail = from?.email || 'noreply@hooks.zhin.dev';
+  const fromEmail = from?.email || 'noreply@zhin.dev';
   const fromName = from?.name || 'Webhook Proxy';
 
   try {
-    const response = await fetch('https://api.mailchannels.net/tx/v1/send', {
+    console.log('[Email] Sending email via Resend:', {
+      from: fromEmail,
+      to,
+      subject,
+    });
+
+    const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
+        'Authorization': `Bearer ${resendApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        personalizations: [
-          {
-            to: [{ email: to }],
-          },
-        ],
-        from: {
-          email: fromEmail,
-          name: fromName,
-        },
+        from: `${fromName} <${fromEmail}>`,
+        to: [to],
         subject,
-        content: [
-          ...(text ? [{ type: 'text/plain', value: text }] : []),
-          ...(html ? [{ type: 'text/html', value: html }] : []),
-        ],
+        text,
+        html,
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('[Email] MailChannels error:', response.status, errorText);
+      console.error('[Email] Resend error:', response.status, errorText);
+      console.error('[Email] Request details:', {
+        from: fromEmail,
+        to,
+      });
       return false;
     }
 
-    console.log('[Email] Email sent successfully to:', to);
+    const result = await response.json();
+    console.log('[Email] Email sent successfully:', result);
     return true;
   } catch (error) {
     console.error('[Email] Failed to send email:', error);
@@ -70,7 +77,8 @@ export async function sendEmail(options: EmailOptions): Promise<boolean> {
 export async function sendVerificationEmail(
   to: string,
   code: string,
-  username: string
+  username: string,
+  resendApiKey: string
 ): Promise<boolean> {
   const subject = '验证您的邮箱 - Webhook Proxy';
   
@@ -206,6 +214,6 @@ export async function sendVerificationEmail(
     subject,
     html,
     text,
-  });
+  }, resendApiKey);
 }
 

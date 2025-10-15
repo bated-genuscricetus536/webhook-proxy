@@ -224,10 +224,17 @@ accountSettings.post('/send-verification-code', async (c) => {
     );
     
     // 发送验证邮件
+    const resendApiKey = (c.env as any).RESEND_API_KEY;
+    if (!resendApiKey) {
+      console.error('[Email Verification] RESEND_API_KEY not configured');
+      return c.json({ error: '邮件服务未配置' }, 500);
+    }
+    
     const emailSent = await sendVerificationEmail(
       email,
       verificationCode,
-      user.username
+      user.username,
+      resendApiKey
     );
     
     if (!emailSent) {

@@ -1,206 +1,180 @@
 # 📧 邮件发送配置指南
 
-本项目使用 **MailChannels** 通过 Cloudflare Workers 发送邮件。MailChannels 是 Cloudflare 推荐的免费邮件发送服务，无需 API Key。
+本项目使用 **Resend** 发送邮件（如邮箱验证码）。Resend 是一个专为开发者设计的现代邮件发送服务。
+
+## ✨ 为什么选择 Resend？
+
+- ✅ **免费额度充足**：3000 封/月
+- ✅ **简单易用**：API 设计简洁，文档清晰
+- ✅ **高送达率**：专业的邮件基础设施
+- ✅ **实时日志**：可在控制台查看每封邮件的发送状态
+- ✅ **与 Cloudflare Workers 完美兼容**：基于 HTTP API，无需 SMTP
 
 ## 📋 前置条件
 
-- ✅ 已部署 Cloudflare Worker
-- ✅ 拥有自定义域名（例如：`hooks.zhin.dev`）
-- ✅ 域名托管在 Cloudflare DNS
+- ✅ 拥有自定义域名（例如：`zhin.dev`）
+- ✅ 域名托管在 Cloudflare DNS（或其他 DNS 提供商）
 
-## 🔧 配置步骤
+## 🚀 配置步骤
 
-### 1. 添加 SPF 记录
+### 1. 注册 Resend 账号
 
-SPF (Sender Policy Framework) 记录告诉收件服务器哪些服务器被授权发送来自您域名的邮件。
+访问 https://resend.com/signup 注册账号（推荐使用 GitHub 快速登录）
 
-在 Cloudflare DNS 中添加以下 TXT 记录：
+### 2. 添加域名
+
+1. 登录 Resend 控制台
+2. 进入 **Domains** → **Add Domain**
+3. 输入你的域名（例如：`zhin.dev`）
+4. 点击 **Add Domain**
+
+### 3. 配置 DNS 记录
+
+Resend 会显示需要添加的 DNS 记录，通常包括：
+
+#### 示例 DNS 记录
 
 ```
 类型: TXT
 名称: @
-内容: v=spf1 include:relay.mailchannels.net ~all
+内容: resend=xxxxxxxxxxxxxxxxxxxxx
 TTL: Auto
 ```
 
-**或者**，如果您已经有 SPF 记录，请在 `~all` 之前添加 `include:relay.mailchannels.net`：
+**在 Cloudflare DNS 中添加这些记录：**
 
-```
-v=spf1 include:_spf.google.com include:relay.mailchannels.net ~all
-```
+1. 登录 Cloudflare Dashboard
+2. 选择你的域名
+3. 进入 **DNS** → **Records**
+4. 根据 Resend 提供的记录添加
 
-### 2. 添加 DKIM 记录（可选但推荐）
+**注意**：DNS 记录通常需要几分钟到几小时才能生效。
 
-DKIM (DomainKeys Identified Mail) 为邮件添加数字签名，提高邮件的可信度。
+### 4. 验证域名
 
-**步骤 1**: 生成 DKIM 密钥对
+1. 添加 DNS 记录后，回到 Resend 控制台
+2. 点击 **Verify Domain**
+3. 等待验证通过（通常几分钟内完成）
 
-访问 https://dkimcore.org/tools/ 或使用以下命令生成：
+### 5. 创建 API Key
+
+1. 在 Resend 控制台进入 **API Keys**
+2. 点击 **Create API Key**
+3. 填写以下信息：
+   - **Name**: `webhook-proxy-production`
+   - **Permission**: `Sending access`
+4. 点击 **Create**
+5. **复制生成的 API Key**（格式：`re_xxxxxxxxxxxxxxxxxxxxxxxx`）
+
+⚠️ **重要**：API Key 只会显示一次，请妥善保存！
+
+### 6. 配置 Cloudflare Workers
+
+将 API Key 添加到 Cloudflare Workers 的环境变量中：
 
 ```bash
-openssl genrsa -out dkim_private.pem 1024
-openssl rsa -in dkim_private.pem -pubout -outform der 2>/dev/null | openssl base64 -A
+# 生产环境
+wrangler secret put RESEND_API_KEY --env production
+# 粘贴你的 API Key: re_xxxxxxxxxxxxxxxxxxxxxxxx
+
+# 开发环境（可选）
+wrangler secret put RESEND_API_KEY --env development
 ```
 
-**步骤 2**: 在 Cloudflare DNS 中添加 DKIM 记录：
-
-```
-类型: TXT
-名称: mailchannels._domainkey
-内容: v=DKIM1; k=rsa; p=YOUR_PUBLIC_KEY
-TTL: Auto
-```
-
-将 `YOUR_PUBLIC_KEY` 替换为您生成的公钥。
-
-### 3. 添加 DMARC 记录（可选但推荐）
-
-DMARC 策略告诉收件服务器如何处理未通过 SPF 和 DKIM 验证的邮件。
-
-在 Cloudflare DNS 中添加：
-
-```
-类型: TXT
-名称: _dmarc
-内容: v=DMARC1; p=quarantine; rua=mailto:your-email@example.com
-TTL: Auto
-```
-
-策略说明：
-- `p=none`: 不采取任何行动（仅监控）
-- `p=quarantine`: 将可疑邮件放入垃圾箱
-- `p=reject`: 拒绝可疑邮件
-
-### 4. 添加域名锁定（推荐）
-
-为了防止他人滥用您的域名通过 MailChannels 发送邮件，建议添加域名锁定记录。
-
-在 Cloudflare DNS 中添加：
-
-```
-类型: TXT
-名称: _mailchannels
-内容: v=mc1 cfid=your-cloudflare-account-id
-TTL: Auto
-```
-
-将 `your-cloudflare-account-id` 替换为您的 Cloudflare Account ID（可在 Cloudflare Dashboard 右侧找到）。
-
-## ✅ 验证配置
-
-### 1. 检查 DNS 记录
-
-使用以下命令验证 DNS 记录是否生效：
+**或者在本地开发时，添加到 `.dev.vars` 文件：**
 
 ```bash
-# 检查 SPF 记录
-dig TXT hooks.zhin.dev +short | grep spf
-
-# 检查 DKIM 记录
-dig TXT mailchannels._domainkey.hooks.zhin.dev +short
-
-# 检查 DMARC 记录
-dig TXT _dmarc.hooks.zhin.dev +short
-
-# 检查域名锁定
-dig TXT _mailchannels.hooks.zhin.dev +short
+RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxx
 ```
 
-### 2. 测试发送邮件
+### 7. 验证配置
 
-1. 登录到 `https://hooks.zhin.dev`
-2. 进入 Settings 页面
-3. 点击"设置邮箱"
-4. 输入您的邮箱地址
-5. 点击"发送验证码"
-6. 检查您的邮箱（包括垃圾箱）
+1. 部署你的 Worker：
+   ```bash
+   wrangler deploy
+   ```
 
-### 3. 使用在线工具验证
+2. 访问你的应用并尝试发送验证码
 
-- **MX Toolbox**: https://mxtoolbox.com/spf.aspx
-- **DMARC Analyzer**: https://www.dmarcanalyzer.com/
-- **Mail Tester**: https://www.mail-tester.com/
+3. 查看 Resend 控制台的 **Emails** 页面，可以看到发送记录
 
-## 📝 当前配置
+## 📊 监控邮件发送
 
-### 发件人信息
+在 Resend 控制台的 **Emails** 页面，你可以：
 
-默认发件人：`noreply@hooks.zhin.dev`
+- 查看每封邮件的发送状态
+- 查看邮件内容预览
+- 查看送达率统计
+- 查看退信原因
 
-可在 `src/utils/email.ts` 中修改：
+## 🔍 常见问题
+
+### 1. 邮件未收到？
+
+**检查项：**
+- ✅ DNS 记录是否正确配置并生效
+- ✅ 域名是否已在 Resend 中验证通过
+- ✅ 检查**垃圾邮件箱**（首次发送的邮件可能被标记为垃圾邮件）
+- ✅ 在 Resend 控制台查看邮件发送日志
+
+### 2. API Key 配置错误？
+
+检查 Cloudflare Workers 的 Secrets：
+
+```bash
+# 查看已配置的 secrets
+wrangler secret list
+
+# 重新设置 RESEND_API_KEY
+wrangler secret put RESEND_API_KEY
+```
+
+### 3. 免费额度不够用？
+
+Resend 免费版提供 **3000 封/月**：
+- 如果是验证码邮件，通常完全够用
+- 如果需要更多额度，可以升级到付费计划
+
+### 4. 如何更换发件人邮箱？
+
+在代码中修改 `src/utils/email.ts`：
 
 ```typescript
-const fromEmail = from?.email || 'noreply@hooks.zhin.dev';
-const fromName = from?.name || 'Webhook Proxy';
+const fromEmail = from?.email || 'noreply@zhin.dev';  // 修改这里
+const fromName = from?.name || 'Webhook Proxy';       // 修改这里
 ```
 
-### 邮件模板
+**注意**：发件人邮箱的域名必须是已在 Resend 中验证的域名。
 
-邮件模板位于 `src/utils/email.ts` 中的 `sendVerificationEmail` 函数。
+## 🔐 安全建议
 
-包含：
-- 精美的 HTML 邮件模板
-- 纯文本备选内容
-- 响应式设计
-- 品牌化样式
+1. **保护 API Key**：
+   - ❌ 不要将 API Key 提交到 Git
+   - ✅ 使用 Cloudflare Secrets 存储
+   - ✅ 定期轮换 API Key
 
-## 🔍 故障排查
+2. **限制权限**：
+   - 仅授予 "Sending access" 权限
+   - 为不同环境创建不同的 API Key
 
-### 问题 1: 收不到邮件
+3. **监控使用量**：
+   - 定期检查 Resend 控制台的使用统计
+   - 设置邮件发送频率限制，防止滥用
 
-**可能原因**：
-1. SPF 记录未生效（DNS 传播需要时间，最多 48 小时）
-2. 邮件被标记为垃圾邮件
-3. 收件地址错误
+## 📚 相关资源
 
-**解决方案**：
-- 等待 DNS 记录生效
-- 检查垃圾箱
-- 查看 Worker 日志：`wrangler tail --format pretty`
+- [Resend 官方文档](https://resend.com/docs)
+- [Resend API 参考](https://resend.com/docs/api-reference/introduction)
+- [Resend 最佳实践](https://resend.com/docs/best-practices)
+- [Cloudflare Workers 文档](https://developers.cloudflare.com/workers/)
 
-### 问题 2: 邮件进入垃圾箱
+## 💡 提示
 
-**可能原因**：
-- 缺少 DKIM 记录
-- 缺少 DMARC 记录
-- 域名信誉度低
-
-**解决方案**：
-- 配置完整的 SPF、DKIM、DMARC 记录
-- 避免发送大量邮件
-- 确保邮件内容质量
-
-### 问题 3: MailChannels API 返回错误
-
-**查看日志**：
-```bash
-wrangler tail --format pretty
-```
-
-**常见错误**：
-- `401 Unauthorized`: 域名锁定配置错误
-- `451 Domain not allowed`: SPF 记录配置错误
-- `550 Rejected`: 收件地址无效或被拒绝
-
-## 📚 更多资源
-
-- [MailChannels 文档](https://mailchannels.zendesk.com/hc/en-us)
-- [Cloudflare Workers 邮件发送示例](https://developers.cloudflare.com/workers/examples/send-emails/)
-- [SPF 记录生成器](https://www.spfwizard.net/)
-- [DKIM 记录生成器](https://dkimcore.org/tools/)
-
-## 🎯 快速配置检查清单
-
-- [ ] 添加 SPF 记录
-- [ ] 添加 DKIM 记录（推荐）
-- [ ] 添加 DMARC 记录（推荐）
-- [ ] 添加域名锁定记录（推荐）
-- [ ] 等待 DNS 传播（最多 48 小时）
-- [ ] 测试发送邮件
-- [ ] 检查邮件是否到达
-- [ ] 验证邮件未进入垃圾箱
+- 在开发环境中，验证码会同时输出到控制台日志中，方便调试
+- 生产环境中，建议启用邮件发送失败的告警通知
+- 可以在 Resend 中自定义邮件模板，提升品牌一致性
 
 ---
 
-**注意**：在开发环境 (`ENVIRONMENT=development`)，验证码仍会在响应中返回 `debug_code` 字段，方便测试。在生产环境，该字段不会返回，用户必须查收邮件。
+**配置完成后，你的应用就可以发送邮件了！** 🎉
 
