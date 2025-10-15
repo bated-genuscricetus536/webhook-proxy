@@ -57,6 +57,7 @@ export async function createProxy(
     random_key: nanoid(16),
     access_token: generateAccessToken(),
     webhook_secret: request.webhook_secret || null,
+    platform_app_id: request.platform_app_id || null,
     verify_signature: request.verify_signature ?? true,
     active: true,
     created_at: now,
@@ -68,9 +69,9 @@ export async function createProxy(
   await db
     .prepare(`
       INSERT INTO proxies (
-        id, user_id, name, platform, random_key, access_token, webhook_secret,
+        id, user_id, name, platform, random_key, access_token, webhook_secret, platform_app_id,
         verify_signature, active, created_at, updated_at, last_event_at, event_count
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       proxy.id,
@@ -80,6 +81,7 @@ export async function createProxy(
       proxy.random_key,
       proxy.access_token,
       proxy.webhook_secret,
+      proxy.platform_app_id,
       proxy.verify_signature ? 1 : 0,
       proxy.active ? 1 : 0,
       proxy.created_at,
@@ -158,6 +160,7 @@ function dbRowToProxy(row: any): Proxy {
     random_key: row.random_key,
     access_token: row.access_token || null,
     webhook_secret: row.webhook_secret,
+    platform_app_id: row.platform_app_id || null,
     verify_signature: Boolean(row.verify_signature),
     active: Boolean(row.active),
     created_at: row.created_at,

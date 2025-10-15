@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { Env } from '../types/index.js';
 import { getProxyByRandomKey, updateProxyEventCount } from '../db/proxies.js';
 import { GitHubAdapter, GitLabAdapter } from '../adapters/index-cf.js';
+import { createQQBotAdapter } from '../adapters/qqbot-cf.js';
 
 // @ts-ignore
 const webhook = new Hono<Env>();
@@ -12,11 +13,11 @@ const webhook = new Hono<Env>();
  */
 webhook.post('/:platform/:randomKey', async (c) => {
   try {
-    const platform = c.req.param('platform') as 'github' | 'gitlab';
+    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot';
     const randomKey = c.req.param('randomKey');
     
     // 验证平台
-    if (!['github', 'gitlab'].includes(platform)) {
+    if (!['github', 'gitlab', 'qqbot'].includes(platform)) {
       return c.text('Invalid platform', 400);
     }
     
@@ -33,6 +34,40 @@ webhook.post('/:platform/:randomKey', async (c) => {
 
     if (proxy.platform !== platform) {
       return c.text('Platform mismatch', 400);
+    }
+
+    // QQ Bot 特殊处理
+    if (platform === 'qqbot') {
+      const qqbotAdapter = createQQBotAdapter({
+        appId: proxy.platform_app_id || '',
+        publicKey: proxy.webhook_secret || '',
+        verifySignature: proxy.verify_signature,
+      });
+      
+      const response = await qqbotAdapter.handleWebhook(c.req.raw);
+      
+      // 如果是正常事件（OpCode 0），则继续广播
+      const body = await c.req.text();
+      const payload = JSON.parse(body);
+      
+      if (payload.op === 0) {
+        const event = qqbotAdapter.transform(payload);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
     }
 
     // 解析请求体

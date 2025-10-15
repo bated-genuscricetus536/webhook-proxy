@@ -105,7 +105,7 @@ api.post('/proxies', async (c) => {
       return c.json({ error: 'Missing required fields' }, 400);
     }
 
-    if (!['github', 'gitlab'].includes(body.platform)) {
+    if (!['github', 'gitlab', 'qqbot'].includes(body.platform)) {
       return c.json({ error: 'Invalid platform' }, 400);
     }
 
