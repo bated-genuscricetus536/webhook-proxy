@@ -13,6 +13,11 @@
 ### 🐛 修复
 - 🔧 修复 CI/CD 中 pnpm lockfile 不兼容问题（统一使用 pnpm 10）
 - 📝 更新文档说明 pnpm 版本要求
+- 🔍 修复所有 TypeScript 类型检查错误
+  - Settings.tsx: 修复 maxlength 属性类型
+  - Docs.tsx: 移除未使用的 props 参数
+  - webhook-connection.ts: 标记未使用的参数
+  - gitlab-cf.ts: 标记未使用的参数
 
 ## [1.0.0] - 2025-01-15
 
