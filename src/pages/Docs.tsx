@@ -171,6 +171,7 @@ export const Docs: FC<{}> = () => {
             <a href="#security">安全特性</a>
             <a href="#proxy-management">Proxy 管理</a>
             <a href="#webhook-usage">Webhook 使用</a>
+            <a href="#qqbot-integration">QQ Bot 集成</a>
             <a href="#api-reference">API 参考</a>
             <a href="#ci-cd">CI/CD 部署</a>
             <a href="#deployment">部署指南</a>
@@ -464,6 +465,201 @@ eventSource.onerror = (error) => {
 
 // 关闭连接
 eventSource.close();`}
+              </div>
+            </div>
+
+            {/* QQ Bot 集成 */}
+            <div class="docs-section" id="qqbot-integration">
+              <h2>🤖 QQ Bot Webhook 集成</h2>
+              
+              <p>Webhook Proxy 支持 QQ 官方机器人的 Webhook 事件转发，使用 <strong>Ed25519</strong> 数字签名算法进行身份验证。</p>
+
+              <h3>1. 获取 QQ Bot 凭据</h3>
+              <p>访问 <a href="https://q.qq.com/#/app/bot" target="_blank" rel="noopener">QQ 开放平台</a> 并完成以下步骤：</p>
+              <ul>
+                <li>创建或选择一个机器人</li>
+                <li>在 <strong>开发设置</strong> 中获取：
+                  <ul>
+                    <li><strong>App ID</strong>：机器人的唯一标识</li>
+                    <li><strong>App Secret</strong>：用于 Ed25519 签名的密钥</li>
+                  </ul>
+                </li>
+              </ul>
+
+              <div class="warning">
+                <strong>⚠️ 重要提示：</strong><br/>
+                App Secret 是敏感信息，请妥善保管！不要将其泄露或提交到代码仓库。如果 Secret 泄露，请立即在 QQ 开放平台重置。
+              </div>
+
+              <h3>2. 创建 QQ Bot Proxy</h3>
+              <p>在 Dashboard 创建 Proxy 时：</p>
+              <ul>
+                <li><strong>平台</strong>：选择 <span class="inline-code">QQ Bot</span></li>
+                <li><strong>App ID</strong>：填入机器人的 App ID</li>
+                <li><strong>Webhook Secret</strong>：填入 App Secret（<strong>不是公钥</strong>）</li>
+                <li><strong>签名验证</strong>：建议启用（生产环境必须启用）</li>
+              </ul>
+
+              <div class="code-block">
+                {`POST /api/proxies
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "My QQ Bot",
+  "platform": "qqbot",
+  "platform_app_id": "102005927",
+  "webhook_secret": "your_app_secret_here",
+  "verify_signature": true
+}`}
+              </div>
+
+              <h3>3. 配置 QQ 开放平台</h3>
+              <p>在 QQ 机器人管理页面：</p>
+              <ol>
+                <li>进入 <strong>事件订阅</strong> → <strong>Webhook 方式</strong></li>
+                <li>填写回调地址：从 Dashboard 复制的 Webhook URL</li>
+                <li>QQ 平台会发送 OpCode 13 验证请求，系统会自动响应</li>
+                <li>验证成功后，选择需要订阅的事件</li>
+                <li>保存配置</li>
+              </ol>
+
+              <div class="success">
+                <strong>✅ 验证流程自动完成！</strong><br/>
+                Webhook Proxy 会自动处理 OpCode 13 回调验证，无需手动操作。
+              </div>
+
+              <h3>4. 支持的事件类型</h3>
+              <p>Webhook Proxy 支持所有 QQ Bot 事件类型（OpCode 0 - Dispatch）：</p>
+
+              <p><strong>公域事件：</strong></p>
+              <ul>
+                <li><span class="inline-code">AT_MESSAGE_CREATE</span> - 用户 @ 机器人</li>
+                <li><span class="inline-code">PUBLIC_MESSAGE_DELETE</span> - 频道消息删除</li>
+              </ul>
+
+              <p><strong>私域事件（需要权限）：</strong></p>
+              <ul>
+                <li><span class="inline-code">MESSAGE_CREATE</span> - 频道消息</li>
+                <li><span class="inline-code">MESSAGE_DELETE</span> - 消息删除</li>
+                <li><span class="inline-code">MESSAGE_REACTION_ADD</span> / <span class="inline-code">MESSAGE_REACTION_REMOVE</span> - 表情反应</li>
+              </ul>
+
+              <p><strong>群聊和私聊：</strong></p>
+              <ul>
+                <li><span class="inline-code">C2C_MESSAGE_CREATE</span> - 用户单聊消息</li>
+                <li><span class="inline-code">FRIEND_ADD</span> / <span class="inline-code">FRIEND_DEL</span> - 好友管理</li>
+                <li><span class="inline-code">GROUP_AT_MESSAGE_CREATE</span> - 群聊 @ 机器人</li>
+                <li><span class="inline-code">GROUP_ADD_ROBOT</span> / <span class="inline-code">GROUP_DEL_ROBOT</span> - 群机器人管理</li>
+              </ul>
+
+              <p><strong>其他事件：</strong></p>
+              <ul>
+                <li>频道、子频道、成员、互动、音频事件等</li>
+              </ul>
+
+              <div class="info">
+                <strong>📚 完整事件列表：</strong><br/>
+                访问 <a href="https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html" target="_blank" rel="noopener">QQ Bot 事件文档</a> 查看所有支持的事件类型。
+              </div>
+
+              <h3>5. 接收 QQ Bot 事件</h3>
+              <p><strong>WebSocket 方式：</strong></p>
+              <div class="code-block">
+                {`const ws = new WebSocket('wss://your-domain.com/qqbot/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('QQ Bot 事件:', data);
+  
+  // 事件结构：
+  // {
+  //   id: '事件ID',
+  //   platform: 'qqbot',
+  //   type: 'AT_MESSAGE_CREATE',  // 事件类型
+  //   timestamp: 1234567890,
+  //   headers: { ... },
+  //   payload: { ... },  // 原始 QQ Bot 数据
+  //   data: {
+  //     opcode: 0,
+  //     event_type: 'AT_MESSAGE_CREATE',
+  //     sequence: 42,
+  //     event_data: { ... }
+  //   }
+  // }
+};`}
+              </div>
+
+              <p><strong>SSE 方式：</strong></p>
+              <div class="code-block">
+                {`const es = new EventSource('https://your-domain.com/qqbot/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 根据事件类型处理
+  if (data.type === 'AT_MESSAGE_CREATE') {
+    console.log('收到 @ 消息:', data.data.event_data);
+  }
+  
+  if (data.type === 'GROUP_AT_MESSAGE_CREATE') {
+    console.log('收到群聊 @ 消息:', data.data.event_data);
+  }
+};`}
+              </div>
+
+              <h3>6. Ed25519 签名验证</h3>
+              <p>QQ Bot 使用 Ed25519 数字签名算法：</p>
+              <ul>
+                <li><strong>OpCode 13</strong>（回调验证）：Webhook Proxy 使用 App Secret 签名响应</li>
+                <li><strong>OpCode 0</strong>（事件推送）：Webhook Proxy 验证 QQ 平台的签名</li>
+              </ul>
+              
+              <p>验证流程：</p>
+              <div class="code-block">
+                {`// QQ 平台发送请求时携带：
+X-Signature-Timestamp: 时间戳
+X-Signature-Ed25519: 签名（hex 编码）
+
+// Webhook Proxy 验证签名：
+message = timestamp + body
+verify(message, signature, publicKey)
+
+// 签名验证通过后，转发事件`}
+              </div>
+
+              <div class="success">
+                <strong>✅ 自动验证：</strong><br/>
+                所有签名验证流程由 Webhook Proxy 自动完成，你只需要正确配置 App Secret。
+              </div>
+
+              <h3>7. 故障排查</h3>
+              <p><strong>回调地址验证失败：</strong></p>
+              <ul>
+                <li>检查 App Secret 是否配置正确</li>
+                <li>确保 Webhook URL 可以从公网访问</li>
+                <li>使用允许的端口（80、443、8080、8443）</li>
+              </ul>
+
+              <p><strong>收不到事件：</strong></p>
+              <ul>
+                <li>在 QQ 开放平台检查事件订阅配置</li>
+                <li>检查日志确认签名验证状态（<span class="inline-code">wrangler tail</span>）</li>
+                <li>实现 WebSocket 重连机制</li>
+              </ul>
+
+              <p><strong>签名验证失败：</strong></p>
+              <ul>
+                <li>确认 App Secret 配置正确（不是公钥）</li>
+                <li>检查服务器时间是否同步</li>
+                <li>查看详细日志：<span class="inline-code">npx wrangler tail --format pretty</span></li>
+              </ul>
+
+              <div class="info">
+                <strong>💡 获取更多帮助：</strong><br/>
+                - <a href="https://github.com/lc-cn/webhook-proxy/blob/master/QQBOT_GUIDE.md" target="_blank">QQ Bot 集成详细指南</a><br/>
+                - <a href="https://bot.q.qq.com/wiki/" target="_blank">QQ Bot 官方文档</a><br/>
+                - <a href="https://github.com/lc-cn/webhook-proxy/issues" target="_blank">提交 Issue</a>
               </div>
             </div>
 

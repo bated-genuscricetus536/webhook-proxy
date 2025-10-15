@@ -18,18 +18,25 @@
 
 ## ✨ 特性
 
-- 🔌 **多平台支持**：GitHub、GitLab（可扩展）
-- 🌐 **多协议支持**：WebSocket 和 SSE
+- 🔌 **多平台支持**：
+  - 🐙 **GitHub** Webhooks
+  - 🦊 **GitLab** Webhooks  
+  - 🤖 **QQ Bot** Webhooks（OpCode 0/13，Ed25519 签名）
+- 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
   - 密码 + 邮箱注册/登录
   - GitHub/GitLab OAuth 绑定
   - Passkey (WebAuthn) 无密码登录
   - MFA (TOTP) 双因素认证
 - 📧 **邮件验证**：集成 Resend 邮件服务（3000 封/月免费额度）
-- 🔒 **安全认证**：Webhook 签名验证、Access Token
+- 🔒 **安全认证**：
+  - Webhook 签名验证（HMAC-SHA256/Ed25519）
+  - Access Token 认证
+  - MFA/Passkey 保护敏感信息
 - ⚡ **高性能**：Cloudflare 全球边缘网络
 - 💾 **持久化存储**：D1 数据库 + KV 缓存
 - 🎯 **开箱即用**：精美的 Web UI 界面
+- 🚀 **CI/CD 自动部署**：GitHub Actions 集成
 
 ## 🏗️ 技术栈
 
@@ -124,6 +131,111 @@ pnpm run dev
 ```
 
 访问 http://localhost:8787 🎉
+
+## 📋 平台配置指南
+
+### GitHub Webhook
+
+1. 进入仓库 Settings → Webhooks → Add webhook
+2. **Payload URL**: 从 Dashboard 复制 Webhook URL
+3. **Content type**: `application/json`
+4. **Secret**: 从 Dashboard 复制 Webhook Secret
+5. 选择需要的事件类型
+6. 点击 "Add webhook"
+
+### GitLab Webhook
+
+1. 进入项目 Settings → Webhooks
+2. **URL**: 从 Dashboard 复制 Webhook URL
+3. **Secret token**: 从 Dashboard 复制 Webhook Secret
+4. 选择需要的触发器
+5. 点击 "Add webhook"
+
+### QQ Bot Webhook
+
+QQ Bot 使用 **Ed25519** 签名算法进行身份验证。
+
+#### 1. 获取 QQ Bot 凭据
+
+1. 访问 [QQ 开放平台](https://q.qq.com/#/app/bot)
+2. 创建/选择机器人
+3. 在 **开发设置** 中获取：
+   - **App ID** (机器人 ID)
+   - **App Secret** (密钥，用于 Ed25519 签名)
+
+⚠️ **重要提示**：App Secret 是敏感信息，请妥善保管！
+
+#### 2. 创建 QQ Bot Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `QQ Bot`
+- **App ID**: 填入机器人的 App ID
+- **Webhook Secret**: 填入 App Secret（**不是公钥**）
+- **签名验证**: 建议启用
+
+#### 3. 配置 QQ 开放平台
+
+1. 进入机器人管理页面
+2. 找到 **事件订阅** → **Webhook 方式**
+3. 填写回调地址：Dashboard 中复制的 Webhook URL
+4. QQ 平台会发送 OpCode 13 验证请求，系统会自动响应
+5. 验证成功后，选择需要订阅的事件
+6. 保存配置
+
+#### 4. 接收 QQ Bot 事件
+
+支持的事件类型（OpCode 0 - Dispatch）：
+
+**公域事件：**
+- `AT_MESSAGE_CREATE` - 用户 @ 机器人
+- `PUBLIC_MESSAGE_DELETE` - 频道消息删除
+
+**私域事件（需权限）：**
+- `MESSAGE_CREATE` - 频道消息
+- `MESSAGE_DELETE` - 消息删除
+- `MESSAGE_REACTION_ADD` / `MESSAGE_REACTION_REMOVE` - 表情反应
+
+**群聊和私聊：**
+- `C2C_MESSAGE_CREATE` - 用户单聊消息
+- `FRIEND_ADD` / `FRIEND_DEL` - 好友管理
+- `GROUP_AT_MESSAGE_CREATE` - 群聊 @ 机器人
+- `GROUP_ADD_ROBOT` / `GROUP_DEL_ROBOT` - 群机器人管理
+
+**其他事件：**
+- 频道、子频道、成员、互动、音频事件等
+
+完整事件列表：[QQ Bot 事件文档](https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html)
+
+#### 5. 事件数据格式
+
+接收到的 QQ Bot 事件会被转换为统一格式：
+
+```javascript
+{
+  id: '事件ID',
+  platform: 'qqbot',
+  type: 'AT_MESSAGE_CREATE',  // 事件类型
+  timestamp: 1234567890,
+  headers: { ... },
+  payload: { ... },  // 原始 QQ Bot 数据
+  data: {
+    opcode: 0,
+    event_type: 'AT_MESSAGE_CREATE',
+    sequence: 42,
+    event_data: { ... }
+  }
+}
+```
+
+#### 6. 签名验证说明
+
+QQ Bot 使用 **Ed25519** 数字签名：
+
+- **OpCode 13** (回调验证)：Webhook Proxy 使用 App Secret 签名响应
+- **OpCode 0** (事件推送)：Webhook Proxy 验证 QQ 平台的签名
+
+验证流程自动完成，无需手动处理。
 
 ## 🔄 CI/CD 自动部署
 
@@ -484,8 +596,9 @@ webhook-proxy/
 │   │   ├── auth.ts            # 认证中间件
 │   │   └── logger.ts          # 日志中间件
 │   ├── adapters/               # 平台适配器
-│   │   ├── github-cf.ts       # GitHub 适配器
-│   │   └── gitlab-cf.ts       # GitLab 适配器
+│   │   ├── github-cf.ts       # GitHub 适配器 (HMAC-SHA256)
+│   │   ├── gitlab-cf.ts       # GitLab 适配器 (HMAC-SHA256)
+│   │   └── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
 │   ├── db/                     # 数据库操作
@@ -498,7 +611,8 @@ webhook-proxy/
 │   ├── utils/                  # 工具函数
 │   │   ├── email.ts           # 邮件发送
 │   │   ├── password.ts        # 密码哈希
-│   │   └── mask.ts            # 密钥掩码
+│   │   ├── mask.ts            # 密钥掩码
+│   │   └── ed25519.ts         # Ed25519 签名验证
 │   ├── types/                  # 类型定义
 │   │   ├── index.ts
 │   │   └── models.ts
@@ -537,7 +651,10 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ### 文档
 
+- [在线文档](https://hooks.zhin.dev/docs) - 完整的使用文档
+- [部署指南](DEPLOYMENT.md) - Cloudflare Workers 部署详解
 - [邮件配置指南](EMAIL_SETUP.md) - Resend 邮件发送配置
+- [QQ Bot 指南](QQBOT_GUIDE.md) - QQ Bot 集成详细说明
 
 ### 框架和平台
 
@@ -545,20 +662,23 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [Cloudflare Workers 文档](https://developers.cloudflare.com/workers/)
 - [Durable Objects 文档](https://developers.cloudflare.com/durable-objects/)
 - [D1 数据库文档](https://developers.cloudflare.com/d1/)
+- [Resend 邮件服务](https://resend.com/docs)
 
 ### Webhook 文档
 
 - [GitHub Webhooks](https://docs.github.com/en/webhooks)
 - [GitLab Webhooks](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html)
+- [QQ Bot 文档](https://bot.q.qq.com/wiki/)
 
 ## 💡 使用场景
 
-- 📱 **实时通知系统** - 将 GitHub/GitLab 事件推送到移动应用
+- 📱 **实时通知系统** - 将 GitHub/GitLab/QQ Bot 事件推送到移动应用
 - 🔔 **CI/CD 监控** - 实时监控构建和部署状态
 - 📊 **事件聚合** - 汇总多个仓库的 webhook 事件
 - 🔄 **跨平台同步** - 同步 GitHub 和 GitLab 事件
 - 📝 **审计日志** - 记录和分析所有 webhook 事件
 - 🎯 **自动化触发** - 基于事件触发自定义工作流
+- 🤖 **QQ Bot 开发** - 将 QQ Bot 事件转换为易于处理的 WebSocket/SSE 流
 
 ## ⭐ Star History
 
