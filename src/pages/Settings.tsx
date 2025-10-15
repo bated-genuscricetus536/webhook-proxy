@@ -321,16 +321,7 @@ export const Settings = () => {
             // 显示验证码输入区域
             document.getElementById('email-verification-section').style.display = 'block';
             
-            // 显示调试验证码（仅开发环境）
-            const debugCodeDisplay = document.getElementById('debug-code-display');
-            if (data.debug_code) {
-              debugCodeDisplay.textContent = '🔑 验证码（开发模式）: ' + data.debug_code;
-              debugCodeDisplay.style.display = 'block';
-            } else {
-              debugCodeDisplay.style.display = 'none';
-            }
-            
-            alert(data.message || '验证码已发送到您的邮箱，请查收！');
+            alert(data.message || '验证码已发送到您的邮箱，请查收（包括垃圾邮件箱）！');
           } catch (error) {
             console.error('Error:', error);
             alert('发送验证码失败: ' + error.message);
@@ -820,8 +811,7 @@ export const Settings = () => {
           </div>
           
           <div id="email-verification-section" style="display:none; margin-top: 20px; padding-top: 20px; border-top: 2px solid #e2e8f0;">
-            <p style="color: #10b981; margin-bottom: 15px;">✅ 验证码已发送到您的邮箱！</p>
-            <p id="debug-code-display" style="display:none; color: #dc2626; font-weight: bold; margin-bottom: 15px;"></p>
+            <p style="color: #10b981; margin-bottom: 15px;">✅ 验证码已发送到您的邮箱，请查收（包括垃圾邮件箱）！</p>
             <div class="form-group">
               <label for="verification-code-input">验证码</label>
               <input type="text" id="verification-code-input" placeholder="输入 6 位验证码" maxlength={6} />

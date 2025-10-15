@@ -239,20 +239,14 @@ accountSettings.post('/send-verification-code', async (c) => {
     
     if (!emailSent) {
       console.error('[Email Verification] Failed to send email to:', email);
-      // 即使邮件发送失败，也返回成功（验证码已存储，用户可以查看日志）
-      // 在开发环境中，我们仍然返回 debug_code
+      return c.json({ error: '邮件发送失败，请稍后重试' }, 500);
     }
     
-    console.log(`[Email Verification] Code for ${email}: ${verificationCode}`);
-    
-    // 检查是否是开发环境
-    const isDevelopment = (c.env as any).ENVIRONMENT === 'development';
+    console.log(`[Email Verification] Verification code sent to: ${email}`);
     
     return c.json({
       status: 'success',
-      message: '验证码已发送到您的邮箱',
-      // 仅在开发环境返回验证码
-      ...(isDevelopment ? { debug_code: verificationCode } : {}),
+      message: '验证码已发送到您的邮箱，请查收（包括垃圾邮件箱）',
     });
   } catch (error) {
     console.error('[AccountSettings] Send verification code error:', error);
