@@ -13,6 +13,16 @@ export const Layout: FC<LayoutProps> = ({ title = 'Webhook Proxy', children, scr
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>{title}</title>
+        
+        {/* Favicon */}
+        <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+        <link rel="alternate icon" type="image/svg+xml" href="/logo.svg" sizes="any" />
+        <link rel="apple-touch-icon" href="/logo.svg" />
+        
+        {/* Meta Tags */}
+        <meta name="description" content="开源 webhook 代理方案，通过适配器将各种平台的 webhook 事件转换为 WebSocket 或 SSE 事件" />
+        <meta name="theme-color" content="#667eea" />
+        
         <style>{`
           * { margin: 0; padding: 0; box-sizing: border-box; }
           body {

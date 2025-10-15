@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 圆角矩形背景 -->
+  <rect width="512" height="512" rx="76" fill="url(#bg-gradient)"/>
+  
+  <!-- 左侧节点 -->
+  <circle cx="136" cy="256" r="35" fill="white"/>
+  
+  <!-- 右侧节点 -->
+  <circle cx="376" cy="256" r="35" fill="white"/>
+  
+  <!-- 中间闪电箭头 -->
+  <path d="M 216 176 L 276 236 L 246 236 L 296 336 L 236 276 L 266 276 Z" fill="white"/>
+  
+  <!-- 连接线（左） -->
+  <line x1="171" y1="256" x2="201" y2="256" stroke="rgba(255,255,255,0.5)" stroke-width="8" stroke-linecap="round" stroke-dasharray="15,10"/>
+  
+  <!-- 连接线（右） -->
+  <line x1="311" y1="256" x2="341" y2="256" stroke="rgba(255,255,255,0.5)" stroke-width="8" stroke-linecap="round" stroke-dasharray="15,10"/>
+</svg>
+

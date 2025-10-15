@@ -3,6 +3,10 @@ main = "src/index.ts"
 compatibility_date = "2024-01-01"
 compatibility_flags = ["nodejs_compat"]
 
+# 静态资源配置
+[site]
+bucket = "./public"
+
 # Durable Objects 配置
 [[durable_objects.bindings]]
 name = "WEBHOOK_CONNECTIONS"

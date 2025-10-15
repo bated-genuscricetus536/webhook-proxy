@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Webhook Proxy Logo Generator</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 800px;
+    }
+    
+    h1 {
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+    
+    .logo-preview {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      justify-content: center;
+      margin-bottom: 40px;
+    }
+    
+    .logo-item {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logo-item h3 {
+      margin: 10px 0 5px 0;
+      color: #334155;
+      font-size: 14px;
+    }
+    
+    .logo-item p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 12px;
+    }
+    
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    .info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+      text-align: left;
+    }
+    
+    .info h4 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+    
+    .info ul {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .info li {
+      margin: 5px 0;
+      color: #1e40af;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🚀 Webhook Proxy Logo</h1>
+    <p class="subtitle">高质量 SVG Logo 和 Favicon 生成器</p>
+    
+    <div class="logo-preview">
+      <div class="logo-item">
+        <canvas id="logo-512" width="512" height="512"></canvas>
+        <h3>高清 Logo</h3>
+        <p>512×512 - 用于网站展示</p>
+      </div>
+      
+      <div class="logo-item">
+        <canvas id="logo-192" width="192" height="192"></canvas>
+        <h3>中等尺寸</h3>
+        <p>192×192 - PWA 图标</p>
+      </div>
+      
+      <div class="logo-item">
+        <canvas id="logo-32" width="32" height="32"></canvas>
+        <h3>Favicon</h3>
+        <p>32×32 - 浏览器图标</p>
+      </div>
+    </div>
+    
+    <div class="buttons">
+      <button onclick="downloadPNG('logo-512', 'webhook-proxy-logo-512.png')">下载 512×512 PNG</button>
+      <button onclick="downloadPNG('logo-192', 'webhook-proxy-logo-192.png')">下载 192×192 PNG</button>
+      <button onclick="downloadPNG('logo-32', 'webhook-proxy-favicon-32.png')">下载 32×32 PNG</button>
+      <button onclick="downloadSVG()">下载 SVG</button>
+    </div>
+    
+    <div class="info">
+      <h4>📦 使用说明</h4>
+      <ul>
+        <li>点击对应按钮下载所需尺寸的图标</li>
+        <li>32×32 PNG 可直接转换为 favicon.ico</li>
+        <li>SVG 格式可无限缩放，适合各种场景</li>
+        <li>建议将文件放置在项目的 <code>public</code> 目录</li>
+      </ul>
+    </div>
+  </div>
+  
+  <script>
+    // Logo 设计：简洁的 Webhook 图标
+    function drawLogo(canvas, size) {
+      const ctx = canvas.getContext('2d');
+      const center = size / 2;
+      
+      // 清空画布
+      ctx.clearRect(0, 0, size, size);
+      
+      // 背景渐变
+      const gradient = ctx.createLinearGradient(0, 0, size, size);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      
+      // 圆角矩形背景
+      const radius = size * 0.15;
+      ctx.fillStyle = gradient;
+      ctx.beginPath();
+      ctx.roundRect(0, 0, size, size, radius);
+      ctx.fill();
+      
+      // 绘制 Webhook 符号（闪电箭头 + 连接节点）
+      ctx.save();
+      ctx.translate(center, center);
+      
+      // 缩放因子
+      const scale = size / 512;
+      
+      // 白色主图标
+      ctx.fillStyle = 'white';
+      ctx.strokeStyle = 'white';
+      ctx.lineWidth = 20 * scale;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      
+      // 左侧节点
+      ctx.beginPath();
+      ctx.arc(-120 * scale, 0, 35 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 右侧节点
+      ctx.beginPath();
+      ctx.arc(120 * scale, 0, 35 * scale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 中间闪电箭头
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.moveTo(-40 * scale, -80 * scale);
+      ctx.lineTo(20 * scale, -20 * scale);
+      ctx.lineTo(-10 * scale, -20 * scale);
+      ctx.lineTo(40 * scale, 80 * scale);
+      ctx.lineTo(-20 * scale, 20 * scale);
+      ctx.lineTo(10 * scale, 20 * scale);
+      ctx.closePath();
+      ctx.fill();
+      
+      // 连接线（虚线效果）
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 8 * scale;
+      ctx.setLineDash([15 * scale, 10 * scale]);
+      
+      ctx.beginPath();
+      ctx.moveTo(-85 * scale, 0);
+      ctx.lineTo(-55 * scale, 0);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(55 * scale, 0);
+      ctx.lineTo(85 * scale, 0);
+      ctx.stroke();
+      
+      ctx.restore();
+    }
+    
+    // 生成所有尺寸
+    ['logo-512', 'logo-192', 'logo-32'].forEach(id => {
+      const canvas = document.getElementById(id);
+      drawLogo(canvas, canvas.width);
+    });
+    
+    // 下载 PNG
+    function downloadPNG(canvasId, filename) {
+      const canvas = document.getElementById(canvasId);
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+    
+    // 下载 SVG
+    function downloadSVG() {
+      const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- 圆角矩形背景 -->
+  <rect width="512" height="512" rx="76" fill="url(#bg-gradient)"/>
+  
+  <!-- 左侧节点 -->
+  <circle cx="136" cy="256" r="35" fill="white"/>
+  
+  <!-- 右侧节点 -->
+  <circle cx="376" cy="256" r="35" fill="white"/>
+  
+  <!-- 中间闪电箭头 -->
+  <path d="M 216 176 L 276 236 L 246 236 L 296 336 L 236 276 L 266 276 Z" fill="white"/>
+  
+  <!-- 连接线（左） -->
+  <line x1="171" y1="256" x2="201" y2="256" stroke="rgba(255,255,255,0.5)" stroke-width="8" stroke-linecap="round" stroke-dasharray="15,10"/>
+  
+  <!-- 连接线（右） -->
+  <line x1="311" y1="256" x2="341" y2="256" stroke="rgba(255,255,255,0.5)" stroke-width="8" stroke-linecap="round" stroke-dasharray="15,10"/>
+</svg>`;
+      
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'webhook-proxy-logo.svg';
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+  </script>
+</body>
+</html>
+
