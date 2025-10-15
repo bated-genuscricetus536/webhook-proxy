@@ -144,7 +144,19 @@ export class QQBotAdapter {
         console.warn('[QQBot] Unexpected User-Agent:', userAgent);
       }
 
-      // 验证签名
+      // 解析 payload
+      const payload: QQBotPayload = JSON.parse(body);
+
+      console.log('[QQBot] OpCode:', payload.op);
+      console.log('[QQBot] Event type:', payload.t);
+
+      // OpCode 13 (回调验证) 不需要验证签名，直接处理
+      if (payload.op === 13) {
+        console.log('[QQBot] OpCode 13: Callback verification, skip signature check');
+        return await this.handleVerification(payload);
+      }
+
+      // 其他 OpCode 需要验证签名
       if (this.config.verifySignature && timestamp && signature) {
         const isValid = await this.verifySignature(body, timestamp, signature);
         if (!isValid) {
@@ -152,16 +164,8 @@ export class QQBotAdapter {
         }
       }
 
-      // 解析 payload
-      const payload: QQBotPayload = JSON.parse(body);
-
-      console.log('[QQBot] OpCode:', payload.op);
-      console.log('[QQBot] Event type:', payload.t);
-
       // 处理不同的 opcode
       switch (payload.op) {
-        case 13: // 回调地址验证
-          return await this.handleVerification(payload);
         
         case 0: // Dispatch - 正常事件推送
           return this.handleDispatch(payload);
