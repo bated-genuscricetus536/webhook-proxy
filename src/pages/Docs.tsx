@@ -172,6 +172,7 @@ export const Docs: FC<{}> = (props) => {
             <a href="#proxy-management">Proxy 管理</a>
             <a href="#webhook-usage">Webhook 使用</a>
             <a href="#api-reference">API 参考</a>
+            <a href="#ci-cd">CI/CD 部署</a>
             <a href="#deployment">部署指南</a>
           </div>
 
@@ -503,9 +504,64 @@ eventSource.close();`}
               </ul>
             </div>
 
+            {/* CI/CD 部署 */}
+            <div class="docs-section" id="ci-cd">
+              <h2>🔄 CI/CD 自动部署</h2>
+              
+              <p>项目已配置 GitHub Actions 自动部署到 Cloudflare Workers。</p>
+
+              <h3>工作流</h3>
+              <ul>
+                <li><strong>CI</strong>: 每次 Push 和 PR 都会运行类型检查</li>
+                <li><strong>Preview</strong>: PR 创建时运行预览部署验证</li>
+                <li><strong>Deploy</strong>: 合并到 master 后自动部署到生产环境</li>
+              </ul>
+
+              <h3>配置步骤</h3>
+              <p><strong>1. Fork 本仓库</strong></p>
+              
+              <p><strong>2. 配置 GitHub Secrets</strong></p>
+              <p>在仓库的 Settings → Secrets and variables → Actions 中添加：</p>
+              <ul>
+                <li><span class="inline-code">CLOUDFLARE_API_TOKEN</span> - Cloudflare API Token</li>
+                <li><span class="inline-code">CLOUDFLARE_ACCOUNT_ID</span> - Cloudflare Account ID</li>
+              </ul>
+
+              <div class="info">
+                <strong>获取 API Token：</strong><br/>
+                访问 Cloudflare Dashboard → API Tokens → Create Token<br/>
+                使用 "Edit Cloudflare Workers" 模板
+              </div>
+
+              <div class="info">
+                <strong>获取 Account ID：</strong><br/>
+                访问 Cloudflare Dashboard，在右侧边栏找到 Account ID
+              </div>
+
+              <p><strong>3. 推送代码自动部署</strong></p>
+              <div class="code-block">
+                {`git push origin master`}
+              </div>
+
+              <p>GitHub Actions 会自动：</p>
+              <ul>
+                <li>✅ 类型检查</li>
+                <li>✅ 应用数据库迁移</li>
+                <li>✅ 部署到 Cloudflare Workers</li>
+              </ul>
+
+              <h3>查看部署状态</h3>
+              <p>访问仓库的 Actions 页面查看工作流运行状态。</p>
+
+              <div class="success">
+                <strong>💡 提示：</strong><br/>
+                详细配置说明请查看 <a href="https://github.com/lc-cn/webhook-proxy/blob/master/.github/CI_CD_SETUP.md" target="_blank">.github/CI_CD_SETUP.md</a>
+              </div>
+            </div>
+
             {/* 部署指南 */}
             <div class="docs-section" id="deployment">
-              <h2>🚀 部署指南</h2>
+              <h2>🚀 手动部署指南</h2>
               
               <h3>环境要求</h3>
               <ul>

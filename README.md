@@ -2,8 +2,11 @@
 
 开源 webhook 代理服务，基于 **Hono** 框架和 **Cloudflare Workers** 构建。将 webhook 事件实时转换为 WebSocket 或 SSE 事件流。
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/yourusername/webhook-proxy)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/lc-cn/webhook-proxy)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![GitHub Stars](https://img.shields.io/github/stars/lc-cn/webhook-proxy?style=social)](https://github.com/lc-cn/webhook-proxy)
+[![CI](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/ci.yml)
+[![Deploy](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml/badge.svg)](https://github.com/lc-cn/webhook-proxy/actions/workflows/deploy.yml)
 
 ## ✨ 特性
 
@@ -40,7 +43,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/yourusername/webhook-proxy.git
+git clone https://github.com/lc-cn/webhook-proxy.git
 cd webhook-proxy
 pnpm install
 ```
@@ -112,7 +115,43 @@ pnpm run dev
 
 访问 http://localhost:8787 🎉
 
-## 📦 部署到生产环境
+## 🔄 CI/CD 自动部署
+
+项目已配置 GitHub Actions 自动部署到 Cloudflare Workers。
+
+### 配置步骤
+
+1. **Fork 本仓库**
+
+2. **配置 GitHub Secrets**
+
+   在仓库的 Settings → Secrets and variables → Actions 中添加：
+
+   - `CLOUDFLARE_API_TOKEN`: Cloudflare API Token
+   - `CLOUDFLARE_ACCOUNT_ID`: Cloudflare Account ID
+
+   > 详细配置说明请查看 [CI/CD 配置指南](.github/CI_CD_SETUP.md)
+
+3. **推送代码自动部署**
+
+   ```bash
+   git push origin master
+   ```
+
+   GitHub Actions 会自动：
+   - ✅ 类型检查
+   - ✅ 应用数据库迁移
+   - ✅ 部署到 Cloudflare Workers
+
+### 工作流
+
+- **CI**: 每次 Push 和 PR 都会运行类型检查
+- **Preview**: PR 创建时运行预览部署验证
+- **Deploy**: 合并到 master 后自动部署到生产环境
+
+## 📦 手动部署到生产环境
+
+如果不使用 CI/CD，可以手动部署：
 
 ### 1. 准备生产环境
 
@@ -512,7 +551,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## ⭐ Star History
 
-[![Star History Chart](https://api.star-history.com/svg?repos=yourusername/webhook-proxy&type=Date)](https://star-history.com/#yourusername/webhook-proxy&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=lc-cn/webhook-proxy&type=Date)](https://star-history.com/#lc-cn/webhook-proxy&Date)
 
 ---
 

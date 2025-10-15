@@ -1,74 +1,80 @@
-# Changelog
+# 更新日志
 
-所有重要的项目变更都会记录在这个文件中。
+本项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [2.0.0] - 2025-01-XX
+## [Unreleased]
 
-### 🎉 重大变更
+### ✨ 新增
+- 🔄 添加 GitHub Actions CI/CD 自动部署
+- 📝 添加 CI/CD 配置指南文档
+- 🎯 PR 预览部署工作流
+- ✅ 持续集成检查工作流
 
-- **迁移到 Hono 框架**: 整个项目重构为基于 Hono 框架，支持多平台部署
-- **模块化路由系统**: 将路由拆分为独立模块（auth, api, webhook）
-- **中间件架构**: 引入标准化的中间件系统
+## [1.0.0] - 2025-01-15
 
-### ✨ 新功能
+### 🎉 首次发布
 
-- 添加认证中间件 (`src/middleware/auth.ts`)
-- 添加日志中间件 (`src/middleware/logger.ts`)
-- 支持多平台部署（Cloudflare Workers, Deno, Bun, Node.js, Vercel）
-- 改进的错误处理和 404 处理
-- 模块化的路由结构
+#### ✨ 核心功能
+- 🔌 支持 GitHub 和 GitLab webhook 代理
+- 🌐 WebSocket 和 SSE 双协议支持
+- 📡 实时事件转发
+- 🔒 Webhook 签名验证
 
-### 📦 依赖更新
+#### 👤 完整用户系统
+- 密码注册/登录
+- GitHub OAuth 登录
+- GitLab OAuth 登录
+- Passkey (WebAuthn) 无密码登录
+- 账号绑定（一个账号可绑定多种登录方式）
 
-- 添加 `hono` ^3.12.0
+#### 🔐 安全特性
+- MFA (TOTP) 双因素认证
+- Passkey (WebAuthn) 支持
+- 邮箱验证（集成 MailChannels）
+- Access Token 认证
+- Secret 掩码保护
 
-### 📁 项目结构变更
+#### 🎨 用户界面
+- 精美的 Hono JSX 页面
+- 响应式设计
+- Dashboard 管理面板
+- Settings 配置页面
+- 在线文档
 
-```
-新增:
-- src/routes/auth.ts
-- src/routes/api.ts
-- src/routes/webhook.ts
-- src/middleware/auth.ts
-- src/middleware/logger.ts
-- HONO_MIGRATION.md
+#### ⚡ 技术栈
+- Hono 3.12+ (Web 框架)
+- Cloudflare Workers (边缘计算)
+- Durable Objects (WebSocket 管理)
+- D1 Database (SQLite 数据库)
+- KV Storage (Session 管理)
+- TypeScript + ESM
 
-删除:
-- src/api/auth.ts
-- src/api/proxies.ts
-```
+#### 📦 部署支持
+- 一键部署到 Cloudflare Workers
+- 完整的本地开发环境
+- 数据库迁移系统
+- 环境配置管理
 
-### 🔄 重构
+### 🐛 已知问题
+- 无
 
-- 重构主入口 `src/index.ts` 使用 Hono 应用
-- 重构所有 API 处理器使用 Hono Context
-- 改进类型定义和类型安全
-
-### 📝 文档更新
-
-- 更新 README.md 说明 Hono 架构
-- 添加 HONO_MIGRATION.md 迁移指南
-- 更新部署文档支持多平台
-
-### ⚠️ 破坏性变更
-
-无 - 所有 API 端点保持向后兼容
-
-### 🐛 Bug 修复
-
-无
+### 📚 文档
+- ✅ 完整的 README
+- ✅ 邮件配置指南
+- ✅ 在线文档页面
+- ✅ API 文档
+- ✅ 贡献指南
 
 ---
 
-## [1.0.0] - 2025-01-XX
+## 版本说明
 
-### 🎉 初始版本
+### 版本号规则
+- **主版本号**：不兼容的 API 修改
+- **次版本号**：向下兼容的功能性新增
+- **修订号**：向下兼容的问题修正
 
-- OAuth 认证系统（GitHub/GitLab）
-- 用户管理和 Proxy 管理
-- WebSocket 和 SSE 实时事件推送
-- Durable Objects 连接管理
-- D1 数据库存储
-- GitHub 和 GitLab 适配器
-- 完整的 TypeScript 支持
-
+### 链接
+- [GitHub 仓库](https://github.com/lc-cn/webhook-proxy)
+- [问题反馈](https://github.com/lc-cn/webhook-proxy/issues)
+- [Pull Requests](https://github.com/lc-cn/webhook-proxy/pulls)
