@@ -216,11 +216,15 @@ export class QQBotAdapter {
 
       console.log('[QQBot] Verification signature:', signature.substring(0, 16) + '...');
 
+      const responseBody = {
+        plain_token,
+        signature,
+      };
+
+      console.log('[QQBot] Verification response body:', JSON.stringify(responseBody));
+
       return new Response(
-        JSON.stringify({
-          plain_token,
-          signature,
-        }),
+        JSON.stringify(responseBody),
         {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
