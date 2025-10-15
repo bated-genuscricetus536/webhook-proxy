@@ -9,11 +9,13 @@ import apiRoutes from './routes/api.js';
 import webhookRoutes from './routes/webhook.js';
 import dashboardRoutes from './routes/dashboard.js';
 import securityRoutes from './routes/security.js';
+import passwordResetRoutes from './routes/password-reset.js';
 import { WebhookConnection } from './durable-objects/webhook-connection.js';
 import { Home } from './pages/Home.js';
 import { About } from './pages/About.js';
 import { Docs } from './pages/Docs.js';
 import { Settings } from './pages/Settings.js';
+import { ResetPassword } from './pages/ResetPassword.js';
 
 // 导出 Durable Object
 export { WebhookConnection };
@@ -59,9 +61,15 @@ app.get('/settings', (c) => {
   return c.html(Settings());
 });
 
+// 密码重置页面
+app.get('/reset-password', (c) => {
+  return c.html(ResetPassword());
+});
+
 // 路由注册顺序：先注册更具体的路径，后注册通配符路径
-// 1. Auth 路由
+// 1. Auth 路由（包括密码重置）
 app.route('/auth', authRoutes as any);
+app.route('/api/auth', passwordResetRoutes as any);
 
 // 2. Security 路由必须在 /api 之前注册，因为 /api 有全局认证中间件
 // passkey/login/* 路由不需要认证（用于未登录用户的登录）

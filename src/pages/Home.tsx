@@ -363,6 +363,9 @@ export const Home: FC<{}> = (_props) => {
               <input type="password" id="login-password" placeholder="输入密码" autocomplete="current-password" />
             </div>
             <button type="submit" class="btn-primary">登录</button>
+            <div style="text-align: right; margin-top: 10px;">
+              <a href="/reset-password" style="color: #667eea; text-decoration: none; font-size: 14px;">忘记密码？</a>
+            </div>
           </form>
 
           {/* 注册表单 */}
