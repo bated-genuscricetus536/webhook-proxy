@@ -348,7 +348,22 @@ export const Dashboard: FC<{}> = (_props) => {
                   let verifyPayload = {};
                   
                   // 2. 根据启用的验证方式进行验证
-                  if (settings.mfa_enabled) {
+                  let verifyMethod = '';
+                  
+                  // 如果两者都启用，让用户选择
+                  if (settings.mfa_enabled && settings.passkey_enabled) {
+                    const choice = confirm('选择验证方式：\\n\\n点击"确定"使用 MFA（验证码）\\n点击"取消"使用 Passkey（生物识别）');
+                    verifyMethod = choice ? 'mfa' : 'passkey';
+                  } else if (settings.mfa_enabled) {
+                    verifyMethod = 'mfa';
+                  } else if (settings.passkey_enabled) {
+                    verifyMethod = 'passkey';
+                  } else {
+                    alert('未启用 MFA 或 Passkey');
+                    return;
+                  }
+                  
+                  if (verifyMethod === 'mfa') {
                     // MFA 验证
                     const mfaToken = prompt('请输入 MFA 验证码（6 位数字）：');
                     if (!mfaToken) return;
@@ -357,7 +372,7 @@ export const Dashboard: FC<{}> = (_props) => {
                       method: 'mfa',
                       token: mfaToken
                     };
-                  } else if (settings.passkey_enabled) {
+                  } else if (verifyMethod === 'passkey') {
                     // Passkey 验证
                     // 获取认证选项
                     const optionsResponse = await fetch('/api/security/passkey/auth/options', {
@@ -409,9 +424,6 @@ export const Dashboard: FC<{}> = (_props) => {
                       method: 'passkey',
                       response: credentialJSON
                     };
-                  } else {
-                    alert('未启用 MFA 或 Passkey');
-                    return;
                   }
                   
                   // 3. 验证并获取 secrets

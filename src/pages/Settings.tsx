@@ -90,9 +90,15 @@ export const Settings = () => {
             document.getElementById('setup-passkey-btn').style.display = data.passkey_enabled ? 'none' : 'inline-block';
             document.getElementById('manage-passkeys-btn').style.display = data.passkey_enabled ? 'inline-block' : 'none';
             
-            // 如果启用了 Passkey，加载列表
+            // 如果启用了 Passkey，加载列表；否则清空列表
             if (data.passkey_enabled) {
               loadPasskeys();
+            } else {
+              // 清空 Passkey 列表显示
+              const passkeyList = document.getElementById('passkey-list');
+              if (passkeyList) {
+                passkeyList.innerHTML = '<li style="text-align: center; color: #94a3b8;">暂无 Passkey</li>';
+              }
             }
           } catch (error) {
             console.error('Error loading security settings:', error);
@@ -636,7 +642,10 @@ export const Settings = () => {
             }
 
             alert('Passkey 已删除！');
+            // 重新加载安全设置（会自动更新 Passkey 列表）
             loadSecuritySettings();
+            // 同时重新加载 Passkey 列表（如果 modal 还打开）
+            loadPasskeys();
           } catch (error) {
             console.error('Error:', error);
             alert('删除 Passkey 失败: ' + error.message);
