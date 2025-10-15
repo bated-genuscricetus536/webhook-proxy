@@ -119,6 +119,11 @@ npx wrangler secret put SESSION_SECRET
 # JWT 密钥（生成随机字符串）
 npx wrangler secret put JWT_SECRET
 # 输入至少 32 字符的随机字符串
+
+# Resend API Key（用于发送邮件）
+npx wrangler secret put RESEND_API_KEY
+# 输入你的 Resend API Key (格式: re_xxxxxxxxxxxxxxxxxxxxxxxx)
+# 获取方式: https://resend.com → API Keys → Create API Key
 ```
 
 生成随机密钥的方法：

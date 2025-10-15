@@ -176,6 +176,7 @@ npx wrangler secret put GITLAB_CLIENT_ID
 npx wrangler secret put GITLAB_CLIENT_SECRET
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put JWT_SECRET
+npx wrangler secret put RESEND_API_KEY  # 邮件服务 API Key
 ```
 
 ### 3. 运行生产迁移

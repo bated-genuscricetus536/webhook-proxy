@@ -603,6 +603,7 @@ npx wrangler secret put GITLAB_CLIENT_ID
 npx wrangler secret put GITLAB_CLIENT_SECRET
 npx wrangler secret put SESSION_SECRET
 npx wrangler secret put JWT_SECRET
+npx wrangler secret put RESEND_API_KEY
 
 # 部署
 npm run deploy`}
@@ -619,6 +620,9 @@ npm run deploy`}
                 <li><strong>GITLAB_CLIENT_ID</strong> / <strong>GITLAB_CLIENT_SECRET</strong> - GitLab OAuth 应用凭据</li>
                 <li><strong>SESSION_SECRET</strong> - Session 加密密钥（至少 32 字符）</li>
                 <li><strong>JWT_SECRET</strong> - JWT 签名密钥（至少 32 字符）</li>
+                <li><strong>RESEND_API_KEY</strong> - Resend 邮件服务 API Key（格式：re_xxx）<br/>
+                  <small>获取方式：访问 <a href="https://resend.com" target="_blank" rel="noopener">resend.com</a> 注册并创建 API Key</small>
+                </li>
               </ul>
 
               <div class="info">
