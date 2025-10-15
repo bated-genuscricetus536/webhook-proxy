@@ -1,0 +1,28 @@
+# 本地开发环境变量示例
+# 复制此文件为 .dev.vars 并填入实际值
+
+# GitHub OAuth（可选，仅用于测试 OAuth 登录）
+# 本地开发时，在 GitHub 创建 OAuth App:
+# - Homepage URL: http://localhost:8787
+# - Callback URL: http://localhost:8787/auth/github/callback
+GITHUB_CLIENT_ID=your_github_client_id
+GITHUB_CLIENT_SECRET=your_github_client_secret
+
+# GitLab OAuth（可选，仅用于测试 OAuth 登录）
+# 本地开发时，在 GitLab 创建应用:
+# - Redirect URI: http://localhost:8787/auth/gitlab/callback
+# - Scopes: read_user
+GITLAB_CLIENT_ID=your_gitlab_client_id
+GITLAB_CLIENT_SECRET=your_gitlab_client_secret
+
+# Session 密钥（必需，随机生成至少 32 字符）
+# 生成方法: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+SESSION_SECRET=local_dev_session_secret_at_least_32_characters_long
+
+# JWT 密钥（必需，随机生成至少 32 字符）
+JWT_SECRET=local_dev_jwt_secret_at_least_32_characters_long
+
+# 注意：
+# - 如果不需要测试 OAuth，可以使用 test 作为占位符
+# - SESSION_SECRET 和 JWT_SECRET 必须足够长（至少 32 字符）
+# - 本地开发时，这些值不需要特别安全，但生产环境必须使用强密钥

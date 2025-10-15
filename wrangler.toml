@@ -1,0 +1,51 @@
+name = "webhook-proxy"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Durable Objects 配置
+[[durable_objects.bindings]]
+name = "WEBHOOK_CONNECTIONS"
+class_name = "WebhookConnection"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["WebhookConnection"]
+
+# D1 数据库配置
+[[d1_databases]]
+binding = "DB"
+database_name = "webhook-proxy-db"
+database_id = "ad8e68c8-9ce8-48b8-acb8-f8ea48ecb1f6"  # 运行 npm run db:create 后填入
+
+# KV 命名空间（用于 session 存储）
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "b60cd3ab0e1140bcbf986a758650a1cb"  # 需要在 Cloudflare 创建后填入
+
+# 环境变量
+[vars]
+ENVIRONMENT = "development"
+
+# Secrets（使用 wrangler secret put 命令设置）
+# GITHUB_CLIENT_ID
+# GITHUB_CLIENT_SECRET
+# GITLAB_CLIENT_ID
+# GITLAB_CLIENT_SECRET
+# JWT_SECRET
+# SESSION_SECRET
+
+# 开发环境配置
+[env.development]
+name = "webhook-proxy-dev"
+
+[env.development.vars]
+ENVIRONMENT = "development"
+
+# 生产环境配置
+[env.production]
+name = "webhook-proxy"
+
+[env.production.vars]
+ENVIRONMENT = "production"
+

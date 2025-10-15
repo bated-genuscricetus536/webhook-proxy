@@ -1,0 +1,40 @@
+{
+  "name": "webhook-proxy",
+  "version": "1.0.0",
+  "description": "开源 webhook 代理方案，通过适配器将各种平台的 webhook 事件转换为 WebSocket 或 SSE 事件",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "db:migrate": "wrangler d1 migrations apply webhook-proxy-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply webhook-proxy-db --local",
+    "db:create": "wrangler d1 create webhook-proxy-db"
+  },
+  "keywords": [
+    "webhook",
+    "proxy",
+    "websocket",
+    "sse",
+    "adapter",
+    "github",
+    "gitlab",
+    "cloudflare-workers"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "hono": "^3.12.0",
+    "nanoid": "^5.0.4",
+    "@simplewebauthn/server": "^13.2.2",
+    "otpauth": "^9.2.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.19.0"
+  }
+}
+

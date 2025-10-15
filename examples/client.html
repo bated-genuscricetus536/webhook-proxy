@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webhook Proxy 客户端示例</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+        
+        .status {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-bottom: 15px;
+        }
+        
+        .status.connected {
+            background: #10b981;
+            color: white;
+        }
+        
+        .status.disconnected {
+            background: #ef4444;
+            color: white;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            margin-right: 10px;
+            transition: background 0.3s;
+        }
+        
+        button:hover {
+            background: #5568d3;
+        }
+        
+        button:disabled {
+            background: #cbd5e1;
+            cursor: not-allowed;
+        }
+        
+        .events {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        
+        .events h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+        
+        .event-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .event {
+            background: #f8fafc;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+        }
+        
+        .event-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+        
+        .event-platform {
+            color: #667eea;
+        }
+        
+        .event-time {
+            color: #64748b;
+            font-size: 0.9em;
+        }
+        
+        .event-type {
+            color: #10b981;
+            margin-bottom: 10px;
+        }
+        
+        .event-data {
+            background: white;
+            padding: 10px;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 0.9em;
+            max-height: 200px;
+            overflow: auto;
+        }
+        
+        .no-events {
+            text-align: center;
+            color: #94a3b8;
+            padding: 40px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e2e8f0;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-bottom: 10px;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🚀 Webhook Proxy</h1>
+            <p>实时接收 webhook 事件</p>
+        </div>
+        
+        <div class="cards">
+            <div class="card">
+                <h2>WebSocket</h2>
+                <div class="status" id="ws-status">未连接</div>
+                <div>
+                    <input type="text" id="ws-url" placeholder="ws://localhost:3000/ws" value="ws://localhost:3000/ws">
+                    <button id="ws-connect">连接</button>
+                    <button id="ws-disconnect" disabled>断开</button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>Server-Sent Events</h2>
+                <div class="status" id="sse-status">未连接</div>
+                <div>
+                    <input type="text" id="sse-url" placeholder="http://localhost:3000/sse" value="http://localhost:3000/sse">
+                    <button id="sse-connect">连接</button>
+                    <button id="sse-disconnect" disabled>断开</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="events">
+            <h2>📨 接收到的事件</h2>
+            <button id="clear-events" style="float: right;">清空</button>
+            <div class="event-list" id="event-list">
+                <div class="no-events">等待事件...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let ws = null;
+        let eventSource = null;
+        const events = [];
+        const maxEvents = 50;
+        
+        // WebSocket 控制
+        document.getElementById('ws-connect').addEventListener('click', () => {
+            const url = document.getElementById('ws-url').value;
+            ws = new WebSocket(url);
+            
+            ws.onopen = () => {
+                updateStatus('ws', 'connected');
+                addLog('WebSocket 已连接');
+            };
+            
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('WebSocket', data);
+            };
+            
+            ws.onerror = (error) => {
+                addLog('WebSocket 错误', error);
+            };
+            
+            ws.onclose = () => {
+                updateStatus('ws', 'disconnected');
+                addLog('WebSocket 已断开');
+            };
+        });
+        
+        document.getElementById('ws-disconnect').addEventListener('click', () => {
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+        });
+        
+        // SSE 控制
+        document.getElementById('sse-connect').addEventListener('click', () => {
+            const url = document.getElementById('sse-url').value;
+            eventSource = new EventSource(url);
+            
+            eventSource.onopen = () => {
+                updateStatus('sse', 'connected');
+                addLog('SSE 已连接');
+            };
+            
+            eventSource.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                addEvent('SSE', data);
+            };
+            
+            eventSource.onerror = (error) => {
+                addLog('SSE 错误', error);
+                updateStatus('sse', 'disconnected');
+            };
+        });
+        
+        document.getElementById('sse-disconnect').addEventListener('click', () => {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+                updateStatus('sse', 'disconnected');
+                addLog('SSE 已断开');
+            }
+        });
+        
+        // 清空事件
+        document.getElementById('clear-events').addEventListener('click', () => {
+            events.length = 0;
+            renderEvents();
+        });
+        
+        // 更新状态
+        function updateStatus(type, status) {
+            const statusEl = document.getElementById(`${type}-status`);
+            const connectBtn = document.getElementById(`${type}-connect`);
+            const disconnectBtn = document.getElementById(`${type}-disconnect`);
+            
+            if (status === 'connected') {
+                statusEl.textContent = '已连接';
+                statusEl.className = 'status connected';
+                connectBtn.disabled = true;
+                disconnectBtn.disabled = false;
+            } else {
+                statusEl.textContent = '未连接';
+                statusEl.className = 'status disconnected';
+                connectBtn.disabled = false;
+                disconnectBtn.disabled = true;
+            }
+        }
+        
+        // 添加事件
+        function addEvent(source, data) {
+            events.unshift({
+                source,
+                data,
+                time: new Date()
+            });
+            
+            if (events.length > maxEvents) {
+                events.pop();
+            }
+            
+            renderEvents();
+        }
+        
+        // 添加日志
+        function addLog(message, error) {
+            console.log(message, error);
+        }
+        
+        // 渲染事件
+        function renderEvents() {
+            const eventList = document.getElementById('event-list');
+            
+            if (events.length === 0) {
+                eventList.innerHTML = '<div class="no-events">等待事件...</div>';
+                return;
+            }
+            
+            eventList.innerHTML = events.map(event => {
+                if (event.data.type === 'connected') {
+                    return '';
+                }
+                
+                return `
+                    <div class="event">
+                        <div class="event-header">
+                            <span class="event-platform">📡 ${event.data.platform || 'System'} (${event.source})</span>
+                            <span class="event-time">${event.time.toLocaleTimeString()}</span>
+                        </div>
+                        <div class="event-type">🎯 ${event.data.type}</div>
+                        <div class="event-data">${JSON.stringify(event.data.data || event.data, null, 2)}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+    </script>
+</body>
+</html>
+
