@@ -40,7 +40,7 @@ webhook.post('/:platform/:randomKey', async (c) => {
     if (platform === 'qqbot') {
       const qqbotAdapter = createQQBotAdapter({
         appId: proxy.platform_app_id || '',
-        publicKey: proxy.webhook_secret || '',
+        secret: proxy.webhook_secret || '', // QQ Bot uses webhook_secret as App Secret
         verifySignature: proxy.verify_signature,
       });
       

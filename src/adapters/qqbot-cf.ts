@@ -2,22 +2,32 @@
  * QQ Bot Webhook 适配器（Cloudflare Workers 版本）
  * 
  * 文档：https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html
+ * 
+ * QQ Bot Webhook 流程：
+ * 1. OpCode 13：回调地址验证 - 需要签名 event_ts + plain_token 并返回
+ * 2. OpCode 0：事件推送 - 需要验证签名，然后返回 OpCode 12 (ACK)
+ * 
+ * 签名验证：
+ * - Headers: X-Signature-Timestamp, X-Signature-Ed25519
+ * - 算法：Ed25519
+ * - 消息：timestamp + body
+ * - 密钥：App Secret（不是公钥！）
  */
 
 import { WebhookEventData } from '../types/index.js';
-import { verifyQQBotSignature } from '../utils/ed25519.js';
+import { Ed25519 } from '../utils/ed25519.js';
 
 export interface QQBotPayload {
-  id: string;          // 事件id
+  id?: string;         // 事件id（OpCode 0 才有）
   op: number;          // opcode
   d: any;              // 事件内容
-  s: number;           // 序列号
-  t: string;           // 事件类型
+  s?: number;          // 序列号（OpCode 0 才有）
+  t?: string;          // 事件类型（OpCode 0 才有）
 }
 
 export interface QQBotConfig {
   appId: string;       // 机器人 App ID
-  publicKey: string;   // 机器人公钥（用于验证签名）
+  secret: string;      // 机器人 App Secret（用于签名和验证）
   verifySignature: boolean;
 }
 
@@ -25,7 +35,14 @@ export interface QQBotConfig {
  * QQ Bot 适配器
  */
 export class QQBotAdapter {
-  constructor(private config: QQBotConfig) {}
+  private ed25519: Ed25519 | null = null;
+
+  constructor(private config: QQBotConfig) {
+    // 如果配置了 secret，初始化 Ed25519
+    if (config.secret) {
+      this.ed25519 = new Ed25519(config.secret);
+    }
+  }
 
   /**
    * 验证签名
@@ -36,7 +53,7 @@ export class QQBotAdapter {
    *   - X-Signature-Ed25519: 签名（hex 格式）
    * - 签名算法：Ed25519
    * - 待签名消息：timestamp + body
-   * - 公钥：从 QQ 开放平台获取（hex 格式，64 个字符，32 字节）
+   * - 密钥：App Secret
    */
   async verifySignature(
     body: string,
@@ -48,38 +65,31 @@ export class QQBotAdapter {
       return true;
     }
 
-    if (!this.config.publicKey) {
-      console.error('[QQBot] Public key not configured');
-      return false;
-    }
-
-    // 公钥格式验证（应该是 64 个 hex 字符 = 32 字节）
-    if (!/^[0-9a-fA-F]{64}$/.test(this.config.publicKey)) {
-      console.error('[QQBot] Invalid public key format (expected 64 hex characters)');
-      console.error('[QQBot] Public key:', this.config.publicKey.substring(0, 16) + '...');
+    if (!this.ed25519) {
+      console.error('[QQBot] App Secret not configured');
       return false;
     }
 
     console.log('[QQBot] Verifying signature...');
     console.log('[QQBot] Timestamp:', timestamp);
     console.log('[QQBot] Signature:', signature.substring(0, 16) + '...');
-    console.log('[QQBot] Public key:', this.config.publicKey.substring(0, 16) + '...');
 
-    const isValid = await verifyQQBotSignature(
-      body,
-      timestamp,
-      signature,
-      this.config.publicKey
-    );
+    try {
+      const message = timestamp + body;
+      const isValid = await this.ed25519.verify(signature, message);
 
-    if (!isValid) {
-      console.error('[QQBot] Signature verification failed');
-      console.error('[QQBot] Body preview:', body.substring(0, 100) + '...');
-    } else {
-      console.log('[QQBot] Signature verification passed');
+      if (!isValid) {
+        console.error('[QQBot] Signature verification failed');
+        console.error('[QQBot] Body preview:', body.substring(0, 100) + '...');
+      } else {
+        console.log('[QQBot] Signature verification passed');
+      }
+
+      return isValid;
+    } catch (error) {
+      console.error('[QQBot] Signature verification error:', error);
+      return false;
     }
-
-    return isValid;
   }
 
   /**
@@ -89,20 +99,21 @@ export class QQBotAdapter {
     const { id, op, d, s, t } = payload;
 
     return {
-      id,
+      id: id || `qqbot_${Date.now()}`,
       platform: 'qqbot',
-      type: t,
+      type: t || `op_${op}`,
       timestamp: Date.now(),
       headers: {
         'x-qqbot-op': op.toString(),
-        'x-qqbot-seq': s.toString(),
+        'x-qqbot-seq': s?.toString() || '',
+        'x-qqbot-event-type': t || '',
       },
       payload: d,
       data: {
         opcode: op,
-        event_type: t,
-        sequence: s,
-        event_id: id,
+        event_type: t || '',
+        sequence: s || 0,
+        event_id: id || '',
         event_data: d,
       },
     };
@@ -119,9 +130,22 @@ export class QQBotAdapter {
       // 获取签名相关 headers
       const timestamp = request.headers.get('X-Signature-Timestamp') || '';
       const signature = request.headers.get('X-Signature-Ed25519') || '';
+      const userAgent = request.headers.get('User-Agent') || '';
+      const appId = request.headers.get('X-Bot-Appid') || '';
+
+      // 日志记录
+      console.log('[QQBot] Incoming request:');
+      console.log('[QQBot]   User-Agent:', userAgent);
+      console.log('[QQBot]   X-Bot-Appid:', appId);
+      console.log('[QQBot]   Body preview:', body.substring(0, 100) + '...');
+
+      // 验证 User-Agent（可选，但推荐）
+      if (userAgent && userAgent !== 'QQBot-Callback') {
+        console.warn('[QQBot] Unexpected User-Agent:', userAgent);
+      }
 
       // 验证签名
-      if (this.config.verifySignature) {
+      if (this.config.verifySignature && timestamp && signature) {
         const isValid = await this.verifySignature(body, timestamp, signature);
         if (!isValid) {
           return new Response('Invalid signature', { status: 401 });
@@ -131,10 +155,13 @@ export class QQBotAdapter {
       // 解析 payload
       const payload: QQBotPayload = JSON.parse(body);
 
+      console.log('[QQBot] OpCode:', payload.op);
+      console.log('[QQBot] Event type:', payload.t);
+
       // 处理不同的 opcode
       switch (payload.op) {
         case 13: // 回调地址验证
-          return this.handleVerification(payload);
+          return await this.handleVerification(payload);
         
         case 0: // Dispatch - 正常事件推送
           return this.handleDispatch(payload);
@@ -150,37 +177,73 @@ export class QQBotAdapter {
   }
 
   /**
-   * 处理回调地址验证
+   * 处理回调地址验证（OpCode 13）
+   * 
+   * QQ Bot 会发送：
+   * {
+   *   "op": 13,
+   *   "d": {
+   *     "plain_token": "xxx",
+   *     "event_ts": "1234567890"
+   *   }
+   * }
+   * 
+   * 需要返回：
+   * {
+   *   "plain_token": "xxx",
+   *   "signature": sign(event_ts + plain_token)
+   * }
    */
-  private handleVerification(payload: QQBotPayload): Response {
+  private async handleVerification(payload: QQBotPayload): Promise<Response> {
     console.log('[QQBot] Verification request:', payload.d);
     
-    // 返回验证响应
-    // OpCode 13 的响应格式
-    return new Response(
-      JSON.stringify({
-        op: 13,
-        d: {
-          plain_token: payload.d.plain_token,
-          signature: payload.d.event_ts, // 使用 event_ts 作为签名（示例）
-        },
-      }),
-      {
-        headers: { 'Content-Type': 'application/json' },
-      }
-    );
+    const { plain_token, event_ts } = payload.d;
+
+    if (!plain_token || !event_ts) {
+      console.error('[QQBot] Missing plain_token or event_ts');
+      return new Response('Bad request', { status: 400 });
+    }
+
+    if (!this.ed25519) {
+      console.error('[QQBot] App Secret not configured, cannot sign');
+      return new Response('Server configuration error', { status: 500 });
+    }
+
+    try {
+      // 签名：event_ts + plain_token
+      const message = event_ts + plain_token;
+      const signature = await this.ed25519.sign(message);
+
+      console.log('[QQBot] Verification signature:', signature.substring(0, 16) + '...');
+
+      return new Response(
+        JSON.stringify({
+          plain_token,
+          signature,
+        }),
+        {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        }
+      );
+    } catch (error) {
+      console.error('[QQBot] Verification error:', error);
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 
   /**
-   * 处理事件分发
+   * 处理事件分发（OpCode 0）
+   * 
+   * 需要返回 HTTP Callback ACK (OpCode 12)
    */
   private handleDispatch(_payload: QQBotPayload): Response {
-    // 返回 HTTP Callback ACK (OpCode 12)
+    console.log('[QQBot] Dispatch event received, sending ACK');
     return this.createAckResponse();
   }
 
   /**
-   * 创建 ACK 响应
+   * 创建 ACK 响应（OpCode 12）
    */
   private createAckResponse(): Response {
     return new Response(
@@ -188,6 +251,7 @@ export class QQBotAdapter {
         op: 12, // HTTP Callback ACK
       }),
       {
+        status: 200,
         headers: { 'Content-Type': 'application/json' },
       }
     );
@@ -200,4 +264,3 @@ export class QQBotAdapter {
 export function createQQBotAdapter(config: QQBotConfig): QQBotAdapter {
   return new QQBotAdapter(config);
 }
-

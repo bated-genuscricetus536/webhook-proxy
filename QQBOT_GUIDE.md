@@ -6,7 +6,7 @@
 
 1. ✅ 已部署 Webhook Proxy 服务
 2. ✅ 拥有 QQ 官方机器人账号
-3. ✅ 获取机器人的 App ID 和公钥
+3. ✅ 获取机器人的 App ID 和 App Secret
 
 ## 🔑 获取 QQ Bot 凭据
 
@@ -19,18 +19,17 @@
 - 进入机器人管理页面
 - 记录 **App ID**（机器人 ID）
 
-### 3. 获取公钥
+### 3. 获取 App Secret
 
 - 在机器人设置中找到 **开发设置**
-- 复制 **公钥**（Ed25519 公钥，hex 格式）
-- 公钥格式：64 个十六进制字符（32 字节）
-- 示例：`a1b2c3d4e5f6...`（完整 64 个字符）
+- 复制 **App Secret**（密钥）
+- Secret 是一个字符串，用于签名和验证 Webhook 请求
 
 **⚠️ 重要提示：**
-- 公钥是 hex 编码的 Ed25519 公钥
-- 长度必须是 64 个字符（0-9, a-f）
-- 请完整复制，不要遗漏任何字符
-- 不要泄露公钥给他人
+- App Secret 是敏感信息，请妥善保管
+- 不要将 Secret 泄露给他人
+- 不要将 Secret 提交到代码仓库
+- 如果 Secret 泄露，请立即在 QQ 开放平台重置
 
 ## 🚀 快速开始
 
@@ -43,7 +42,7 @@
   "name": "My QQ Bot",
   "platform": "qqbot",
   "platform_app_id": "your_app_id_here",
-  "webhook_secret": "your_public_key_here",
+  "webhook_secret": "your_app_secret_here",
   "verify_signature": true
 }
 ```
@@ -52,7 +51,7 @@
 - `name`: Proxy 名称（自定义）
 - `platform`: 固定为 `qqbot`
 - `platform_app_id`: QQ Bot 的 App ID
-- `webhook_secret`: QQ Bot 的公钥（hex 格式）
+- `webhook_secret`: QQ Bot 的 App Secret（密钥）
 - `verify_signature`: 是否验证签名（推荐启用）
 
 ### 2. 配置 QQ Bot Webhook
@@ -197,7 +196,7 @@ Webhook Proxy 会自动响应验证请求。
   "name": "Test QQ Bot",
   "platform": "qqbot",
   "platform_app_id": "your_app_id",
-  "webhook_secret": "",
+  "webhook_secret": "your_app_secret",
   "verify_signature": false
 }
 ```
@@ -229,12 +228,12 @@ ws.onmessage = (event) => {
 ### 1. 回调地址验证失败
 
 **可能原因：**
-- 公钥配置错误
+- App Secret 配置错误
 - 回调 URL 不可访问
 - 端口不在允许列表（80、443、8080、8443）
 
 **解决方法：**
-- 检查公钥是否正确（hex 格式）
+- 检查 App Secret 是否正确
 - 确保 Webhook URL 可以从公网访问
 - 使用允许的端口
 
@@ -253,12 +252,12 @@ ws.onmessage = (event) => {
 ### 3. 签名验证失败
 
 **可能原因：**
-- 公钥错误
+- App Secret 错误
 - 时间戳过期
 - 请求体被修改
 
 **解决方法：**
-- 确认公钥格式正确（hex 编码）
+- 确认 App Secret 配置正确
 - 检查服务器时间是否同步
 - 使用 `wrangler tail` 查看详细日志
 
