@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub Social Preview Generator - Webhook Proxy</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 40px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      text-align: center;
+      max-width: 1400px;
+    }
+    
+    h1 {
+      color: #1e293b;
+      margin-bottom: 10px;
+    }
+    
+    .subtitle {
+      color: #64748b;
+      margin-bottom: 40px;
+    }
+    
+    .preview-section {
+      margin-bottom: 40px;
+    }
+    
+    .preview-wrapper {
+      background: #f8fafc;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      display: inline-block;
+    }
+    
+    canvas {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      max-width: 100%;
+      height: auto;
+    }
+    
+    .size-info {
+      margin-top: 15px;
+      color: #64748b;
+      font-size: 14px;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 15px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-top: 30px;
+    }
+    
+    button {
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    button:hover {
+      transform: translateY(-2px);
+    }
+    
+    .info {
+      margin-top: 30px;
+      padding: 20px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+      text-align: left;
+    }
+    
+    .info h3 {
+      margin-top: 0;
+      color: #1e40af;
+    }
+    
+    .info ol {
+      margin: 10px 0;
+      padding-left: 20px;
+    }
+    
+    .info li {
+      margin: 8px 0;
+      color: #1e40af;
+    }
+    
+    .info code {
+      background: #e0f2fe;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎨 GitHub Social Preview</h1>
+    <p class="subtitle">为 Webhook Proxy 仓库生成社交分享图片</p>
+    
+    <div class="preview-section">
+      <div class="preview-wrapper">
+        <canvas id="social-preview" width="1280" height="640"></canvas>
+      </div>
+      <div class="size-info">
+        📐 尺寸：1280×640 (GitHub 推荐)
+      </div>
+    </div>
+    
+    <div class="buttons">
+      <button onclick="downloadImage('webhook-proxy-social-preview.png')">⬇️ 下载图片 (PNG)</button>
+      <button onclick="regenerate()">🔄 重新生成</button>
+    </div>
+    
+    <div class="info">
+      <h3>📝 如何设置 GitHub Social Preview</h3>
+      <ol>
+        <li>点击上方按钮下载生成的图片</li>
+        <li>访问仓库设置页面：<code>https://github.com/lc-cn/webhook-proxy/settings</code></li>
+        <li>向下滚动到 <strong>Social preview</strong> 部分</li>
+        <li>点击 <strong>Edit</strong> 按钮</li>
+        <li>上传刚才下载的图片</li>
+        <li>点击 <strong>Save</strong> 保存</li>
+      </ol>
+      <p style="margin-top: 15px;">
+        <strong>✨ 效果：</strong>当别人分享你的仓库链接时，会显示这张精美的预览图！
+      </p>
+    </div>
+  </div>
+  
+  <script>
+    // 绘制 Social Preview
+    function drawSocialPreview() {
+      const canvas = document.getElementById('social-preview');
+      const ctx = canvas.getContext('2d');
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      // 清空画布
+      ctx.clearRect(0, 0, width, height);
+      
+      // 绘制渐变背景
+      const gradient = ctx.createLinearGradient(0, 0, width, height);
+      gradient.addColorStop(0, '#667eea');
+      gradient.addColorStop(1, '#764ba2');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, width, height);
+      
+      // 绘制装饰性网格
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.lineWidth = 1;
+      const gridSize = 40;
+      for (let i = 0; i < width; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(i, 0);
+        ctx.lineTo(i, height);
+        ctx.stroke();
+      }
+      for (let i = 0; i < height; i += gridSize) {
+        ctx.beginPath();
+        ctx.moveTo(0, i);
+        ctx.lineTo(width, i);
+        ctx.stroke();
+      }
+      
+      // 左侧：Logo
+      const logoSize = 280;
+      const logoX = 180;
+      const logoY = (height - logoSize) / 2;
+      
+      // Logo 背景圆
+      const logoGradient = ctx.createLinearGradient(logoX, logoY, logoX + logoSize, logoY + logoSize);
+      logoGradient.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+      logoGradient.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
+      ctx.fillStyle = logoGradient;
+      ctx.beginPath();
+      ctx.arc(logoX + logoSize / 2, logoY + logoSize / 2, logoSize / 2 + 20, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 绘制 Logo（简化版）
+      const scale = logoSize / 512;
+      ctx.save();
+      ctx.translate(logoX + logoSize / 2, logoY + logoSize / 2);
+      
+      // 白色背景圆角矩形
+      const rectSize = logoSize * 0.85;
+      const radius = rectSize * 0.15;
+      ctx.fillStyle = 'white';
+      ctx.beginPath();
+      ctx.roundRect(-rectSize / 2, -rectSize / 2, rectSize, rectSize, radius);
+      ctx.fill();
+      
+      // Logo 元素
+      const elemScale = scale * 0.85;
+      
+      // 左侧节点
+      ctx.fillStyle = '#667eea';
+      ctx.beginPath();
+      ctx.arc(-120 * elemScale, 0, 35 * elemScale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 右侧节点
+      ctx.beginPath();
+      ctx.arc(120 * elemScale, 0, 35 * elemScale, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // 中间闪电
+      ctx.fillStyle = '#667eea';
+      ctx.beginPath();
+      ctx.moveTo(-40 * elemScale, -80 * elemScale);
+      ctx.lineTo(20 * elemScale, -20 * elemScale);
+      ctx.lineTo(-10 * elemScale, -20 * elemScale);
+      ctx.lineTo(40 * elemScale, 80 * elemScale);
+      ctx.lineTo(-20 * elemScale, 20 * elemScale);
+      ctx.lineTo(10 * elemScale, 20 * elemScale);
+      ctx.closePath();
+      ctx.fill();
+      
+      // 连接线
+      ctx.strokeStyle = 'rgba(102, 126, 234, 0.4)';
+      ctx.lineWidth = 8 * elemScale;
+      ctx.setLineDash([15 * elemScale, 10 * elemScale]);
+      
+      ctx.beginPath();
+      ctx.moveTo(-85 * elemScale, 0);
+      ctx.lineTo(-55 * elemScale, 0);
+      ctx.stroke();
+      
+      ctx.beginPath();
+      ctx.moveTo(55 * elemScale, 0);
+      ctx.lineTo(85 * elemScale, 0);
+      ctx.stroke();
+      
+      ctx.restore();
+      
+      // 右侧：文字内容
+      const textX = logoX + logoSize + 100;
+      const textY = height / 2;
+      
+      // 主标题
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 72px -apple-system, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('Webhook Proxy', textX, textY - 80);
+      
+      // 分隔线
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(textX, textY - 30);
+      ctx.lineTo(textX + 450, textY - 30);
+      ctx.stroke();
+      
+      // 副标题
+      ctx.font = '32px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+      ctx.fillText('开源 Webhook 代理服务', textX, textY + 30);
+      
+      // 特性标签
+      ctx.font = '24px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
+      const features = ['⚡ WebSocket & SSE', '🔒 安全认证', '🚀 边缘计算'];
+      features.forEach((feature, index) => {
+        ctx.fillText(feature, textX, textY + 90 + (index * 40));
+      });
+      
+      // 底部信息
+      ctx.font = '20px -apple-system, sans-serif';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.fillText('github.com/lc-cn/webhook-proxy', textX, height - 60);
+    }
+    
+    // 下载图片
+    function downloadImage(filename) {
+      const canvas = document.getElementById('social-preview');
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.click();
+    }
+    
+    // 重新生成
+    function regenerate() {
+      drawSocialPreview();
+    }
+    
+    // 初始化
+    drawSocialPreview();
+  </script>
+</body>
+</html>
+
