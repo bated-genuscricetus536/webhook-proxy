@@ -38,18 +38,26 @@ webhook.post('/:platform/:randomKey', async (c) => {
 
     // QQ Bot 特殊处理
     if (platform === 'qqbot') {
+      // 先读取请求体（避免多次读取）
+      const body = await c.req.text();
+      const payload = JSON.parse(body);
+      
       const qqbotAdapter = createQQBotAdapter({
         appId: proxy.platform_app_id || '',
         secret: proxy.webhook_secret || '', // QQ Bot uses webhook_secret as App Secret
         verifySignature: proxy.verify_signature,
       });
       
-      const response = await qqbotAdapter.handleWebhook(c.req.raw);
+      // 重新构造请求（因为原始请求体已被读取）
+      const clonedRequest = new Request(c.req.raw.url, {
+        method: c.req.raw.method,
+        headers: c.req.raw.headers,
+        body: body,
+      });
+      
+      const response = await qqbotAdapter.handleWebhook(clonedRequest);
       
       // 如果是正常事件（OpCode 0），则继续广播
-      const body = await c.req.text();
-      const payload = JSON.parse(body);
-      
       if (payload.op === 0) {
         const event = qqbotAdapter.transform(payload);
         

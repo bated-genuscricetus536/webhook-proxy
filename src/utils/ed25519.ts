@@ -5,7 +5,7 @@
  * 参考：
  * - https://bot.q.qq.com/wiki/develop/api-v2/dev-prepare/interface-framework/event-emit.html#webhook%E6%96%B9%E5%BC%8F
  * - https://github.com/zhinjs/qq-official-bot
- * - TweetNaCl.js Ed25519 实现
+ * - @noble/curves/ed25519 (纯 JS 实现，Cloudflare Workers 兼容)
  * 
  * QQ Bot 签名机制：
  * 1. OpCode 13（回调验证）：签名 event_ts + plain_token 并返回
@@ -15,8 +15,11 @@
  * 密钥派生规则：
  * - 将 secret 重复填充到至少 32 字节
  * - 截取前 32 字节作为种子
- * - 使用种子生成 Ed25519 密钥对
+ * - 使用种子通过 TweetNaCl 兼容的方式生成 Ed25519 密钥对
  */
+
+// @ts-ignore - @noble/curves 可能没有类型定义
+import { ed25519 } from '@noble/curves/ed25519';
 
 /**
  * 将 hex 字符串转换为 Uint8Array
@@ -63,18 +66,13 @@ function deriveSeed(secret: string): Uint8Array {
 
 /**
  * Ed25519 签名和验证类
- * 
- * 注意：由于 Web Crypto API 的限制，我们需要使用一些变通方法：
- * 1. Web Crypto API 不支持从种子生成 Ed25519 密钥对
- * 2. 我们需要手动实现 Ed25519 的密钥派生逻辑
- * 3. 使用 SHA-512 + Ed25519 curve 的标准流程
- * 
- * 但是，Cloudflare Workers 的 crypto.subtle 完全支持 Ed25519！
- * 我们可以直接使用 32 字节种子作为私钥。
+ * 使用 @noble/curves/ed25519（TweetNaCl 兼容）
  */
 export class Ed25519 {
   private secret: string;
   private seedCache?: Uint8Array;
+  private privateKeyCache?: Uint8Array;
+  private publicKeyCache?: Uint8Array;
 
   constructor(secret: string) {
     this.secret = secret;
@@ -91,6 +89,32 @@ export class Ed25519 {
   }
 
   /**
+   * 获取私钥（从种子派生，TweetNaCl 兼容）
+   */
+  private getPrivateKey(): Uint8Array {
+    if (!this.privateKeyCache) {
+      const seed = this.getSeed();
+      // @noble/curves 的 ed25519.utils.getExtendedPublicKey 返回完整的私钥
+      // 但我们需要使用种子直接作为私钥（TweetNaCl 方式）
+      this.privateKeyCache = seed;
+    }
+    return this.privateKeyCache;
+  }
+
+  /**
+   * 获取公钥（从私钥派生）
+   */
+  private getPublicKey(): Uint8Array {
+    if (!this.publicKeyCache) {
+      const privateKey = this.getPrivateKey();
+      // 从私钥（种子）生成公钥
+      const pubKey = ed25519.getPublicKey(privateKey);
+      this.publicKeyCache = pubKey instanceof Uint8Array ? pubKey : new Uint8Array(pubKey);
+    }
+    return this.publicKeyCache;
+  }
+
+  /**
    * 签名消息（用于 OpCode 13 回调验证）
    * 
    * @param message - 待签名的消息字符串
@@ -98,30 +122,23 @@ export class Ed25519 {
    */
   async sign(message: string): Promise<string> {
     try {
-      const seed = this.getSeed();
+      const privateKey = this.getPrivateKey();
       const messageBytes = new TextEncoder().encode(message);
       
-      // 导入私钥（直接使用种子作为私钥）
-      const privateKey = await crypto.subtle.importKey(
-        'raw',
-        seed,
-        {
-          name: 'Ed25519',
-          namedCurve: 'Ed25519',
-        },
-        false,
-        ['sign']
-      );
+      console.log('[Ed25519] Signing message...');
+      console.log('[Ed25519]   Message:', message);
+      console.log('[Ed25519]   Message bytes length:', messageBytes.length);
+      console.log('[Ed25519]   Private key (seed) length:', privateKey.length);
       
-      // 签名
-      const signatureBuffer = await crypto.subtle.sign(
-        'Ed25519',
-        privateKey,
-        messageBytes
-      );
+      // 使用 @noble/curves 签名
+      const signatureBytes = ed25519.sign(messageBytes, privateKey);
       
-      const signatureBytes = new Uint8Array(signatureBuffer);
-      return bytesToHex(signatureBytes);
+      console.log('[Ed25519]   Signature length:', signatureBytes.length);
+      
+      const signature = bytesToHex(signatureBytes);
+      console.log('[Ed25519]   Signature:', signature.substring(0, 32) + '...');
+      
+      return signature;
     } catch (error) {
       console.error('[Ed25519] Sign error:', error);
       throw error;
@@ -137,9 +154,14 @@ export class Ed25519 {
    */
   async verify(signature: string, message: string): Promise<boolean> {
     try {
-      const seed = this.getSeed();
+      const publicKey = this.getPublicKey();
       const messageBytes = new TextEncoder().encode(message);
       const signatureBytes = hexToBytes(signature);
+      
+      console.log('[Ed25519] Verifying signature...');
+      console.log('[Ed25519]   Message length:', messageBytes.length);
+      console.log('[Ed25519]   Signature length:', signatureBytes.length);
+      console.log('[Ed25519]   Public key length:', publicKey.length);
       
       // Ed25519 签名应该是 64 字节
       if (signatureBytes.length !== 64) {
@@ -147,52 +169,10 @@ export class Ed25519 {
         return false;
       }
       
-      // 导入私钥（种子）
-      const privateKey = await crypto.subtle.importKey(
-        'raw',
-        seed,
-        {
-          name: 'Ed25519',
-          namedCurve: 'Ed25519',
-        },
-        true, // 需要可导出以获取公钥
-        ['sign', 'verify']
-      );
+      // 使用 @noble/curves 验证签名
+      const isValid = ed25519.verify(signatureBytes, messageBytes, publicKey);
       
-      // 导出公钥
-      // 注意：Web Crypto API 不直接支持从私钥导出公钥
-      // 我们需要使用一个技巧：先导出 JWK，然后重新导入为公钥
-      const jwkRaw = await crypto.subtle.exportKey('jwk', privateKey);
-      
-      // 确保是 JsonWebKey 类型
-      if (jwkRaw instanceof ArrayBuffer) {
-        throw new Error('Unexpected ArrayBuffer from exportKey');
-      }
-      
-      const jwk = jwkRaw as JsonWebKey;
-      
-      // 删除私钥部分，只保留公钥
-      delete jwk.d;
-      jwk.key_ops = ['verify'];
-      
-      const publicKey = await crypto.subtle.importKey(
-        'jwk',
-        jwk,
-        {
-          name: 'Ed25519',
-          namedCurve: 'Ed25519',
-        },
-        false,
-        ['verify']
-      );
-      
-      // 验证签名
-      const isValid = await crypto.subtle.verify(
-        'Ed25519',
-        publicKey,
-        signatureBytes,
-        messageBytes
-      );
+      console.log('[Ed25519]   Verification result:', isValid);
       
       return isValid;
     } catch (error) {
@@ -219,8 +199,8 @@ export async function verifyQQBotSignature(
 ): Promise<boolean> {
   // QQ Bot 签名验证算法：timestamp + body
   const message = timestamp + body;
-  const ed25519 = new Ed25519(secret);
-  return ed25519.verify(signature, message);
+  const ed25519Instance = new Ed25519(secret);
+  return ed25519Instance.verify(signature, message);
 }
 
 /**
@@ -238,6 +218,6 @@ export async function signQQBotCallback(
 ): Promise<string> {
   // QQ Bot 回调验证算法：event_ts + plain_token
   const message = eventTs + plainToken;
-  const ed25519 = new Ed25519(secret);
-  return ed25519.sign(message);
+  const ed25519Instance = new Ed25519(secret);
+  return ed25519Instance.sign(message);
 }
