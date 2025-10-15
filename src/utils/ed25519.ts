@@ -19,7 +19,7 @@
  */
 
 // @ts-ignore - @noble/curves 可能没有类型定义
-import { ed25519 } from '@noble/curves/ed25519';
+import { ed25519 } from '@noble/curves/ed25519.js';
 
 /**
  * 将 hex 字符串转换为 Uint8Array
