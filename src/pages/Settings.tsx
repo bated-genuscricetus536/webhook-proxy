@@ -4,6 +4,23 @@ export const Settings = () => {
   return (
     <DashboardLayout
       scripts={`
+        // Base64URL 编码/解码辅助函数
+        function uint8ArrayToBase64url(array) {
+          return btoa(String.fromCharCode.apply(null, array))
+            .replace(/\\+/g, '-')
+            .replace(/\\//g, '_')
+            .replace(/=/g, '');
+        }
+
+        function base64urlToUint8Array(base64url) {
+          const padding = '='.repeat((4 - base64url.length % 4) % 4);
+          const base64 = (base64url + padding)
+            .replace(/-/g, '+')
+            .replace(/_/g, '/');
+          const rawData = atob(base64);
+          return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+        }
+
         // 获取 session token
         function getSessionToken() {
           const cookies = document.cookie.split(';');
@@ -521,7 +538,18 @@ export const Settings = () => {
               throw new Error('No credential returned');
             }
 
-            // 4. 验证注册
+            // 4. 序列化 credential 对象
+            const credentialJSON = {
+              id: credential.id,
+              rawId: uint8ArrayToBase64url(new Uint8Array(credential.rawId)),
+              response: {
+                clientDataJSON: uint8ArrayToBase64url(new Uint8Array(credential.response.clientDataJSON)),
+                attestationObject: uint8ArrayToBase64url(new Uint8Array(credential.response.attestationObject))
+              },
+              type: credential.type
+            };
+
+            // 5. 验证注册
             const verifyResponse = await fetch('/api/security/passkey/register/verify', {
               method: 'POST',
               headers: {
@@ -529,7 +557,7 @@ export const Settings = () => {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                response: credential,
+                response: credentialJSON,
                 device_name: deviceName
               })
             });

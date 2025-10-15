@@ -18,6 +18,12 @@
   - Docs.tsx: 移除未使用的 props 参数
   - webhook-connection.ts: 标记未使用的参数
   - gitlab-cf.ts: 标记未使用的参数
+- 🔐 **修复 Passkey "Illegal invocation" 和 "uint8ArrayToBase64url is not defined" 错误**
+  - 修复 Passkey 注册时的序列化问题（Settings.tsx）
+  - 修复 Passkey 登录时的序列化问题（Home.tsx）
+  - 修复 Dashboard 查看 Secret 时的序列化问题（Dashboard.tsx）
+  - 正确序列化 WebAuthn credential 对象为 JSON
+  - 在所有页面添加必需的 Base64URL 编码/解码辅助函数
 
 ## [1.0.0] - 2025-01-15
 

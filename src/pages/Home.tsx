@@ -16,7 +16,14 @@ export const Home: FC<{}> = (_props) => {
       }
     })();
 
-    // Base64URL 解码为 Uint8Array
+    // Base64URL 编码/解码辅助函数
+    function uint8ArrayToBase64url(array) {
+      return btoa(String.fromCharCode.apply(null, array))
+        .replace(/\\+/g, '-')
+        .replace(/\\//g, '_')
+        .replace(/=/g, '');
+    }
+
     function base64urlToUint8Array(base64url) {
       const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
       const padding = '='.repeat((4 - base64.length % 4) % 4);
@@ -140,10 +147,23 @@ export const Home: FC<{}> = (_props) => {
         const credential = await navigator.credentials.get({ publicKey: options });
         if (!credential) throw new Error('No credential returned');
 
+        // 序列化 credential 对象
+        const credentialJSON = {
+          id: credential.id,
+          rawId: uint8ArrayToBase64url(new Uint8Array(credential.rawId)),
+          response: {
+            clientDataJSON: uint8ArrayToBase64url(new Uint8Array(credential.response.clientDataJSON)),
+            authenticatorData: uint8ArrayToBase64url(new Uint8Array(credential.response.authenticatorData)),
+            signature: uint8ArrayToBase64url(new Uint8Array(credential.response.signature)),
+            userHandle: credential.response.userHandle ? uint8ArrayToBase64url(new Uint8Array(credential.response.userHandle)) : null
+          },
+          type: credential.type
+        };
+
         const verifyResponse = await fetch('/api/security/passkey/login/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ response: credential })
+          body: JSON.stringify({ response: credentialJSON })
         });
 
         if (!verifyResponse.ok) {

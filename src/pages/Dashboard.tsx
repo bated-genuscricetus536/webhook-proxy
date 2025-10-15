@@ -6,6 +6,23 @@ export const Dashboard: FC<{}> = (_props) => {
     const API_BASE = '';
     let sessionToken = '';
 
+    // Base64URL 编码/解码辅助函数
+    function uint8ArrayToBase64url(array) {
+      return btoa(String.fromCharCode.apply(null, array))
+        .replace(/\\+/g, '-')
+        .replace(/\\//g, '_')
+        .replace(/=/g, '');
+    }
+
+    function base64urlToUint8Array(base64url) {
+      const padding = '='.repeat((4 - base64url.length % 4) % 4);
+      const base64 = (base64url + padding)
+        .replace(/-/g, '+')
+        .replace(/_/g, '/');
+      const rawData = atob(base64);
+      return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+    }
+
     // 从 URL 或 Cookie 获取 token
     function getToken() {
       if (sessionToken) {
@@ -371,9 +388,26 @@ export const Dashboard: FC<{}> = (_props) => {
                       publicKey: options
                     });
                     
+                    if (!credential) {
+                      throw new Error('No credential returned');
+                    }
+                    
+                    // 序列化 credential 对象
+                    const credentialJSON = {
+                      id: credential.id,
+                      rawId: uint8ArrayToBase64url(new Uint8Array(credential.rawId)),
+                      response: {
+                        clientDataJSON: uint8ArrayToBase64url(new Uint8Array(credential.response.clientDataJSON)),
+                        authenticatorData: uint8ArrayToBase64url(new Uint8Array(credential.response.authenticatorData)),
+                        signature: uint8ArrayToBase64url(new Uint8Array(credential.response.signature)),
+                        userHandle: credential.response.userHandle ? uint8ArrayToBase64url(new Uint8Array(credential.response.userHandle)) : null
+                      },
+                      type: credential.type
+                    };
+                    
                     verifyPayload = {
                       method: 'passkey',
-                      response: credential
+                      response: credentialJSON
                     };
                   } else {
                     alert('未启用 MFA 或 Passkey');
