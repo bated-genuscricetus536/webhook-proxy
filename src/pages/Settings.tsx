@@ -787,7 +787,7 @@ export const Settings = () => {
             <p id="debug-code-display" style="display:none; color: #dc2626; font-weight: bold; margin-bottom: 15px;"></p>
             <div class="form-group">
               <label for="verification-code-input">验证码</label>
-              <input type="text" id="verification-code-input" placeholder="输入 6 位验证码" maxlength="6" />
+              <input type="text" id="verification-code-input" placeholder="输入 6 位验证码" maxlength={6} />
             </div>
             <div class="modal-actions">
               <button class="btn btn-primary" onclick="verifyEmail()">验证邮箱</button>

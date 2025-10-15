@@ -1,6 +1,6 @@
 import { FC } from 'hono/jsx';
 
-export const Docs: FC<{}> = (props) => {
+export const Docs: FC<{}> = () => {
   const docsStyle = `
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {

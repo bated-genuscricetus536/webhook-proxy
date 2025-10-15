@@ -53,7 +53,7 @@ export class WebhookConnection extends DurableObject<Env> {
   /**
    * 处理 WebSocket 升级
    */
-  private handleWebSocketUpgrade(request: Request): Response {
+  private handleWebSocketUpgrade(_request: Request): Response {
     const pair = new WebSocketPair();
     const [client, server] = Object.values(pair);
 
@@ -84,7 +84,7 @@ export class WebhookConnection extends DurableObject<Env> {
   /**
    * 处理 SSE 连接
    */
-  private handleSSE(request: Request): Response {
+  private handleSSE(_request: Request): Response {
     // SSE 在 Cloudflare Workers 中需要使用流式响应
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
@@ -208,7 +208,7 @@ export class WebhookConnection extends DurableObject<Env> {
   /**
    * WebSocket 关闭处理
    */
-  async webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean): Promise<void> {
+  async webSocketClose(ws: WebSocket, code: number, _reason: string, _wasClean: boolean): Promise<void> {
     const session = this.sessions.get(ws);
     if (session) {
       console.log(`[WebSocket] Connection closed: ${session.id}, code: ${code}`);

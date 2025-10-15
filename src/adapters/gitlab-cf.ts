@@ -16,7 +16,7 @@ export class GitLabAdapter extends CloudflareWebhookAdapter {
   /**
    * 验证 GitLab webhook 令牌
    */
-  async verifySignature(request: Request, body: any): Promise<boolean> {
+  async verifySignature(request: Request, _body: any): Promise<boolean> {
     if (!this.config.verifySignature) {
       return true;
     }
