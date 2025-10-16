@@ -414,8 +414,7 @@ webhook.get('/:platform/:randomKey/ws', async (c) => {
       status: response.status,
       statusText: response.statusText,
       headers: new Headers(response.headers),
-      // @ts-ignore - webSocket 是 WebSocket 响应需要的
-      webSocket: (response as any).webSocket,
+      webSocket: response.webSocket,
     });
   } catch (error) {
     console.error('[Connection] Error:', error);
