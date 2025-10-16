@@ -8,6 +8,7 @@ import { createGenericAdapter } from '../adapters/generic-cf.js';
 import { createStripeAdapter } from '../adapters/stripe-cf.js';
 import { createJenkinsAdapter } from '../adapters/jenkins-cf.js';
 import { createJiraAdapter } from '../adapters/jira-cf.js';
+import { createSentryAdapter } from '../adapters/sentry-cf.js';
 
 // @ts-ignore
 const webhook = new Hono<Env>();
@@ -18,11 +19,11 @@ const webhook = new Hono<Env>();
  */
 webhook.post('/:platform/:randomKey', async (c) => {
   try {
-    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'jenkins' | 'jira' | 'generic';
+    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'jenkins' | 'jira' | 'sentry' | 'generic';
     const randomKey = c.req.param('randomKey');
     
     // 验证平台
-    if (!['github', 'gitlab', 'qqbot', 'telegram', 'stripe', 'jenkins', 'jira', 'generic'].includes(platform)) {
+    if (!['github', 'gitlab', 'qqbot', 'telegram', 'stripe', 'jenkins', 'jira', 'sentry', 'generic'].includes(platform)) {
       return c.text('Invalid platform', 400);
     }
     
@@ -252,6 +253,40 @@ webhook.post('/:platform/:randomKey', async (c) => {
         const body = await clonedRequest.text();
         const jiraEvent = JSON.parse(body);
         const event = jiraAdapter.transform(jiraEvent);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
+    }
+
+    // Sentry Webhook 处理
+    if (platform === 'sentry') {
+      const sentryAdapter = createSentryAdapter({
+        webhookSecret: proxy.webhook_secret || undefined,
+        verifySignature: proxy.verify_signature,
+      });
+      
+      const clonedRequest = c.req.raw.clone();
+      
+      const response = await sentryAdapter.handleWebhook(c.req.raw);
+      
+      // 如果验证成功，转换并广播事件
+      if (response.status === 200) {
+        const body = await clonedRequest.text();
+        const sentryEvent = JSON.parse(body);
+        const event = sentryAdapter.transform(sentryEvent);
         
         // 更新事件计数
         await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);

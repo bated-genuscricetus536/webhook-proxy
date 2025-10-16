@@ -127,6 +127,7 @@ export const Dashboard: FC<{}> = (_props) => {
           'stripe': '💳',
           'jenkins': '⚙️',
           'jira': '📋',
+          'sentry': '🔍',
           'generic': '🔗'
         };
         
@@ -287,6 +288,16 @@ export const Dashboard: FC<{}> = (_props) => {
         webhookSecretInput.placeholder = '留空或填写 Secret（可选）';
         webhookSecretInput.required = false;
         webhookSecretHint.textContent = '可选的 Webhook Secret，用于 HMAC-SHA256 签名验证';
+      } else if (platform === 'sentry') {
+        // Sentry 不需要 App ID
+        appIdGroup.style.display = 'none';
+        appIdInput.required = false;
+        appIdInput.value = '';
+        
+        webhookSecretLabel.textContent = 'Client Secret';
+        webhookSecretInput.placeholder = '留空或填写 Client Secret（可选）';
+        webhookSecretInput.required = false;
+        webhookSecretHint.textContent = 'Sentry Integration 的 Client Secret，用于签名验证';
       } else if (platform === 'generic') {
         // Generic Webhook 不需要 App ID
         appIdGroup.style.display = 'none';
@@ -704,6 +715,7 @@ export const Dashboard: FC<{}> = (_props) => {
                 <option value="stripe">Stripe</option>
                 <option value="jenkins">Jenkins</option>
                 <option value="jira">Jira</option>
+                <option value="sentry">Sentry</option>
                 <option value="generic">Generic Webhook</option>
               </select>
             </div>

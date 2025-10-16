@@ -26,6 +26,7 @@
   - 💳 **Stripe** Webhooks（HMAC-SHA256 签名验证）
   - ⚙️ **Jenkins** Webhooks（Token 验证）
   - 📋 **Jira** Webhooks（HMAC-SHA256 签名验证）
+  - 🔍 **Sentry** Webhooks（HMAC-SHA256 签名验证）
   - 🔗 **Generic** Webhook（通用支持，接收任意第三方 Webhook）
 - 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
@@ -859,6 +860,236 @@ Jira 使用 HMAC-SHA256 签名验证：
 - 签名验证在 Jira Cloud 中是可选的
 - 测试时可以使用 Jira 的 Webhook 测试功能
 
+### Sentry Webhook
+
+Sentry 是领先的错误监控和性能追踪平台，使用 HMAC-SHA256 签名验证。
+
+#### 1. 创建 Sentry Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Sentry`
+- **Client Secret**: 可选，填写 Integration 的 Client Secret
+- **签名验证**: 如果设置了 Secret 则建议启用
+
+#### 2. 配置 Sentry Webhook
+
+**方法 1：使用 Internal Integration（推荐）**
+
+1. 登录 Sentry，进入 **Settings** → **Developer Settings**
+2. 点击 **Create New Integration** → **Internal Integration**
+3. 填写基本信息：
+   - **Name**: Webhook Proxy
+   - **Webhook URL**: `https://your-domain.com/sentry/xxxxx`
+   - **Permissions**: 根据需要设置（通常 Issue 和 Error 读权限）
+   - **Webhooks**: 勾选需要的事件类型
+4. 保存后获取 **Client Secret**（用于签名验证）
+
+**方法 2：使用 Project Webhook**
+
+1. 进入项目 **Settings** → **Webhooks**
+2. 添加 Webhook URL：`https://your-domain.com/sentry/xxxxx`
+3. 选择要监听的事件
+4. 保存配置
+
+#### 3. 支持的事件类型
+
+Sentry 支持多种 Webhook 事件：
+
+**Issue 事件：**
+- `issue.created` - Issue 创建
+- `issue.resolved` - Issue 解决
+- `issue.assigned` - Issue 分配
+- `issue.unresolved` - Issue 重新打开
+- `issue.ignored` - Issue 忽略
+
+**Error 事件：**
+- `error.created` - 新错误发生
+- `event.alert` - 错误告警触发
+
+**Comment 事件：**
+- `comment.created` - 评论创建
+- `comment.updated` - 评论更新
+- `comment.deleted` - 评论删除
+
+完整事件列表：[Sentry Webhook Events](https://docs.sentry.io/product/integrations/integration-platform/webhooks/)
+
+#### 4. 接收 Sentry 事件
+
+接收到的 Sentry 事件会被转换为统一格式：
+
+```javascript
+{
+  id: 'sentry-123-xxx',
+  platform: 'sentry',
+  type: 'issue.created',
+  timestamp: 1234567890,
+  headers: {},
+  payload: {
+    action: 'created',
+    installation: { uuid: 'xxx' },
+    data: {
+      issue: {
+        id: '123',
+        title: 'TypeError: Cannot read property...',
+        shortId: 'PROJ-123',
+        level: 'error',
+        status: 'unresolved',
+        culprit: 'app/components/UserList.tsx',
+        permalink: 'https://sentry.io/organizations/...',
+        platform: 'javascript',
+        project: {
+          id: '456',
+          name: 'My App',
+          slug: 'my-app'
+        },
+        assignedTo: {
+          name: 'John Doe',
+          email: 'john@example.com'
+        }
+      }
+    },
+    actor: {
+      name: 'Sentry',
+      type: 'application'
+    }
+  },
+  data: {
+    action: 'created',
+    issue_id: '123',
+    issue_title: 'TypeError: Cannot read property...',
+    issue_short_id: 'PROJ-123',
+    issue_level: 'error',
+    issue_status: 'unresolved',
+    project_name: 'My App',
+    project_slug: 'my-app',
+    culprit: 'app/components/UserList.tsx',
+    permalink: 'https://sentry.io/organizations/...',
+    assigned_to: 'John Doe'
+  }
+}
+```
+
+#### 5. 使用示例
+
+**WebSocket 方式：**
+```javascript
+const ws = new WebSocket('wss://your-domain.com/sentry/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  switch (data.type) {
+    case 'issue.created':
+    case 'error.created':
+      // 新错误告警
+      console.log(`❌ [${data.data.issue_level}] ${data.data.issue_title}`);
+      console.log(`   Project: ${data.data.project_name}`);
+      console.log(`   Link: ${data.data.permalink}`);
+      
+      // 发送通知到 Slack/Discord
+      sendAlert({
+        level: data.data.issue_level,
+        title: data.data.issue_title,
+        url: data.data.permalink
+      });
+      break;
+      
+    case 'issue.resolved':
+      // 问题已解决
+      console.log(`✅ Issue resolved: ${data.data.issue_short_id}`);
+      break;
+      
+    case 'issue.assigned':
+      // Issue 被分配
+      console.log(`📌 Issue assigned to ${data.data.assigned_to}`);
+      notifyAssignee(data.data.assigned_to, data.data.permalink);
+      break;
+  }
+};
+```
+
+**SSE 方式：**
+```javascript
+const es = new EventSource('https://your-domain.com/sentry/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 实时更新错误监控仪表板
+  if (data.type === 'issue.created') {
+    updateDashboard({
+      id: data.data.issue_id,
+      title: data.data.issue_title,
+      level: data.data.issue_level,
+      status: data.data.issue_status,
+      project: data.data.project_name,
+      timestamp: data.timestamp
+    });
+  }
+  
+  // 高优先级错误立即通知
+  if (data.data.issue_level === 'error' || data.data.issue_level === 'fatal') {
+    triggerUrgentAlert(data);
+  }
+};
+```
+
+#### 6. 签名验证机制
+
+Sentry 使用 HMAC-SHA256 签名验证：
+
+1. **签名生成**：
+   - Sentry 使用 Integration 的 Client Secret
+   - 对整个请求体进行 HMAC-SHA256 签名
+   - 签名放在 `Sentry-Hook-Signature` 请求头
+
+2. **签名头格式**：
+   ```
+   Sentry-Hook-Signature: <hex_signature>
+   ```
+
+3. **验证流程**：
+   - 提取 `Sentry-Hook-Signature` 头
+   - 使用相同的 Client Secret 重新计算签名
+   - 使用常量时间比较防止时序攻击
+
+4. **获取 Client Secret**：
+   - Internal Integration 创建后可在详情页查看
+   - 妥善保管，不要泄露
+
+#### 7. 最佳实践
+
+✅ **推荐做法：**
+- 使用 Internal Integration（更安全、功能更强）
+- 始终启用签名验证
+- 根据错误级别设置不同的通知策略
+- 关联 Issue ID 避免重复通知
+- 记录所有错误事件用于分析
+
+⚠️ **注意事项：**
+- Internal Integration 仅对组织可见
+- Project Webhook 不支持签名验证
+- 高流量项目注意 Webhook 请求频率
+- 测试时使用 Sentry 的测试功能
+
+#### 8. 错误级别说明
+
+Sentry 支持以下错误级别：
+
+- `fatal` - 致命错误，应用崩溃
+- `error` - 错误，需要立即处理
+- `warning` - 警告，可能的问题
+- `info` - 信息，一般性日志
+- `debug` - 调试信息
+
+**建议通知策略：**
+- `fatal`/`error` → 立即通知相关人员
+- `warning` → 每日汇总通知
+- `info`/`debug` → 仅记录日志
+
+完整 Sentry Webhooks 文档：[https://docs.sentry.io/product/integrations/integration-platform/webhooks/](https://docs.sentry.io/product/integrations/integration-platform/webhooks/)
+
 ### Generic Webhook（通用）
 
 **🎯 Generic Webhook 是最灵活的选项，可以接收任何第三方服务的 Webhook！**
@@ -1365,6 +1596,7 @@ webhook-proxy/
 │   │   ├── stripe-cf.ts       # Stripe 适配器 (HMAC-SHA256)
 │   │   ├── jenkins-cf.ts      # Jenkins 适配器 (Token)
 │   │   ├── jira-cf.ts         # Jira 适配器 (HMAC-SHA256)
+│   │   ├── sentry-cf.ts       # Sentry 适配器 (HMAC-SHA256)
 │   │   └── generic-cf.ts      # Generic Webhook 适配器 (Bearer Token)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
@@ -1440,6 +1672,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)
 - [Jenkins Webhooks](https://plugins.jenkins.io/generic-webhook-trigger/)
 - [Jira Webhooks](https://developer.atlassian.com/server/jira/platform/webhooks/)
+- [Sentry Webhooks](https://docs.sentry.io/product/integrations/integration-platform/webhooks/)
 
 ## 💡 使用场景
 
@@ -1447,6 +1680,7 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - 🔔 **CI/CD 监控** - 实时监控 Jenkins、GitHub Actions、GitLab CI 构建状态
 - 💳 **支付事件处理** - 实时接收 Stripe 支付、订阅、退款事件
 - 📋 **项目管理集成** - Jira Issue 状态变更实时通知
+- 🔍 **错误监控告警** - Sentry 错误实时推送，按级别自动通知
 - 📊 **事件聚合** - 汇总多个服务的 webhook 事件到统一接口
 - 🔄 **第三方服务集成** - Stripe、Sentry、Docker Hub 等任何支持 Webhook 的服务
 - 📝 **审计日志** - 记录和分析所有 webhook 事件
