@@ -204,6 +204,18 @@ webhook.get('/:platform/:randomKey/:connectionType', async (c) => {
 
     const response = await doStub.fetch(newRequest);
 
+    // 对于 WebSocket 连接，需要传递 webSocket 对象
+    if (connectionType === 'ws') {
+      return new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: new Headers(response.headers),
+        // @ts-ignore - webSocket 是 WebSocket 响应需要的
+        webSocket: (response as any).webSocket,
+      });
+    }
+
+    // 对于 SSE 连接，直接返回流式响应
     return new Response(response.body, {
       status: response.status,
       statusText: response.statusText,
