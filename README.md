@@ -23,6 +23,7 @@
   - 🦊 **GitLab** Webhooks  
   - 🤖 **QQ Bot** Webhooks（OpCode 0/13，Ed25519 签名）
   - ✈️ **Telegram** Bot Webhooks（Secret Token 验证）
+  - 🔗 **Generic** Webhook（通用支持，接收任意第三方 Webhook）
 - 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
   - 密码 + 邮箱注册/登录
@@ -322,6 +323,146 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 - 验证失败返回 401 Unauthorized
 
 完整 Telegram Bot 文档：[https://core.telegram.org/bots/api](https://core.telegram.org/bots/api)
+
+### Generic Webhook（通用）
+
+**🎯 Generic Webhook 是最灵活的选项，可以接收任何第三方服务的 Webhook！**
+
+#### 1. 使用场景
+
+Generic Webhook 适用于：
+- 任何提供 Webhook 功能的第三方服务
+- 不需要特定平台适配器的场景
+- 快速集成和测试
+- 自定义 Webhook 服务
+
+支持所有内容类型：
+- `application/json` - JSON 数据
+- `application/x-www-form-urlencoded` - 表单数据
+- `text/*` - 文本数据
+- 其他任意格式
+
+#### 2. 创建 Generic Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Generic Webhook`
+- **Authorization Token**: 可选，填写验证令牌
+- **签名验证**: 建议启用（如果设置了 Token）
+
+#### 3. 配置第三方服务
+
+在任何支持 Webhook 的第三方服务中：
+
+1. 找到 Webhook 配置页面
+2. 填入 Webhook URL：`https://your-domain.com/generic/xxxxx`
+3. 如果服务支持自定义请求头，添加：
+   ```
+   Authorization: Bearer your-token-here
+   ```
+   或直接在 URL 中添加 Token（如果服务支持）
+
+#### 4. 接收事件
+
+Generic Webhook 会将所有请求信息转换为标准格式：
+
+```javascript
+{
+  id: '事件ID',
+  platform: 'generic',
+  type: 'webhook',  // 或从 payload 中提取的事件类型
+  timestamp: 1234567890,
+  headers: {
+    'content-type': 'application/json',
+    'user-agent': '...',
+    // 所有请求头
+  },
+  payload: { /* 原始请求数据 */ },
+  data: {
+    method: 'POST',
+    path: '/generic/xxxxx',
+    query: { /* URL 查询参数 */ },
+    content_type: 'application/json'
+  }
+}
+```
+
+#### 5. 事件类型自动推断
+
+Generic 适配器会尝试从以下字段推断事件类型：
+- `payload.event`
+- `payload.event_type`
+- `payload.type`
+- `payload.action`
+- 请求头 `X-Event-Type`
+- 请求头 `X-Webhook-Event`
+
+如果无法推断，则使用 `'webhook'` 作为默认类型。
+
+#### 6. Token 验证
+
+支持两种 Token 传递方式：
+
+**方式 1：Authorization 头（推荐）**
+```bash
+curl -X POST https://your-domain.com/generic/xxxxx \
+  -H "Authorization: Bearer your-token" \
+  -H "Content-Type: application/json" \
+  -d '{"event": "test", "data": "hello"}'
+```
+
+**方式 2：直接传递 Token**
+```bash
+curl -X POST https://your-domain.com/generic/xxxxx \
+  -H "Authorization: your-token" \
+  -H "Content-Type: application/json" \
+  -d '{"event": "test", "data": "hello"}'
+```
+
+#### 7. 使用示例
+
+**Stripe Webhook：**
+```javascript
+// Stripe 会发送 JSON 格式的事件
+// Generic Webhook 自动接收并转发
+// payload 包含完整的 Stripe 事件数据
+```
+
+**Custom Service：**
+```javascript
+// 自定义服务发送 POST 请求
+fetch('https://your-domain.com/generic/xxxxx', {
+  method: 'POST',
+  headers: {
+    'Authorization': 'Bearer your-token',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    event: 'order.created',
+    data: { orderId: '12345' }
+  })
+});
+
+// WebSocket 客户端接收：
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Event type:', data.type); // 'order.created'
+  console.log('Payload:', data.payload);
+};
+```
+
+#### 8. 最佳实践
+
+✅ **推荐做法：**
+- 始终设置 Authorization Token
+- 在第三方服务中配置请求头
+- 使用 HTTPS 保证安全
+- 测试时先禁用签名验证
+
+⚠️ **注意事项：**
+- Generic Webhook 不验证特定平台的签名
+- 仅通过 Token 进行简单认证
+- 生产环境建议启用 Token 验证
 
 ## 🔄 CI/CD 自动部署
 
@@ -685,7 +826,8 @@ webhook-proxy/
 │   │   ├── github-cf.ts       # GitHub 适配器 (HMAC-SHA256)
 │   │   ├── gitlab-cf.ts       # GitLab 适配器 (HMAC-SHA256)
 │   │   ├── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
-│   │   └── telegram-cf.ts     # Telegram Bot 适配器 (Secret Token)
+│   │   ├── telegram-cf.ts     # Telegram Bot 适配器 (Secret Token)
+│   │   └── generic-cf.ts      # Generic Webhook 适配器 (Bearer Token)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
 │   ├── db/                     # 数据库操作
@@ -760,13 +902,14 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 
 ## 💡 使用场景
 
-- 📱 **实时通知系统** - 将 GitHub/GitLab/QQ Bot/Telegram 事件推送到移动应用
-- 🔔 **CI/CD 监控** - 实时监控构建和部署状态
-- 📊 **事件聚合** - 汇总多个仓库的 webhook 事件
-- 🔄 **跨平台同步** - 同步 GitHub 和 GitLab 事件
+- 📱 **实时通知系统** - 将任何平台的 Webhook 事件推送到移动应用
+- 🔔 **CI/CD 监控** - 实时监控构建和部署状态（GitHub、GitLab、Jenkins 等）
+- 📊 **事件聚合** - 汇总多个服务的 webhook 事件到统一接口
+- 🔄 **第三方服务集成** - Stripe、Sentry、Docker Hub 等任何支持 Webhook 的服务
 - 📝 **审计日志** - 记录和分析所有 webhook 事件
 - 🎯 **自动化触发** - 基于事件触发自定义工作流
-- 🤖 **机器人开发** - 将 QQ Bot/Telegram Bot 事件转换为易于处理的 WebSocket/SSE 流
+- 🤖 **机器人开发** - QQ Bot、Telegram Bot 事件实时推送
+- 🔗 **Webhook 调试** - 使用 Generic Webhook 快速测试和调试
 
 ## ⭐ Star History
 

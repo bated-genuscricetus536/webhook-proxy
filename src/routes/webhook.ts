@@ -4,6 +4,7 @@ import { getProxyByRandomKey, updateProxyEventCount } from '../db/proxies.js';
 import { GitHubAdapter, GitLabAdapter } from '../adapters/index-cf.js';
 import { createQQBotAdapter } from '../adapters/qqbot-cf.js';
 import { createTelegramAdapter } from '../adapters/telegram-cf.js';
+import { createGenericAdapter } from '../adapters/generic-cf.js';
 
 // @ts-ignore
 const webhook = new Hono<Env>();
@@ -14,11 +15,11 @@ const webhook = new Hono<Env>();
  */
 webhook.post('/:platform/:randomKey', async (c) => {
   try {
-    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram';
+    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'generic';
     const randomKey = c.req.param('randomKey');
     
     // 验证平台
-    if (!['github', 'gitlab', 'qqbot', 'telegram'].includes(platform)) {
+    if (!['github', 'gitlab', 'qqbot', 'telegram', 'generic'].includes(platform)) {
       return c.text('Invalid platform', 400);
     }
     
@@ -94,6 +95,57 @@ webhook.post('/:platform/:randomKey', async (c) => {
         const body = await c.req.text();
         const update = JSON.parse(body);
         const event = telegramAdapter.transform(update);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
+    }
+
+    // Generic Webhook 处理
+    if (platform === 'generic') {
+      const genericAdapter = createGenericAdapter({
+        verifySignature: proxy.verify_signature,
+        secret: proxy.webhook_secret || undefined,
+      });
+      
+      // 克隆请求以便多次读取
+      const clonedRequest = c.req.raw.clone();
+      
+      const response = await genericAdapter.handleWebhook(c.req.raw);
+      
+      // 如果验证成功，转换并广播事件
+      if (response.status === 200) {
+        // 读取请求体
+        let payload: any;
+        const contentType = clonedRequest.headers.get('Content-Type') || '';
+        
+        try {
+          if (contentType.includes('application/json')) {
+            payload = await clonedRequest.json();
+          } else if (contentType.includes('application/x-www-form-urlencoded')) {
+            const formData = await clonedRequest.formData();
+            payload = Object.fromEntries(formData.entries());
+          } else {
+            payload = await clonedRequest.text();
+          }
+        } catch (error) {
+          console.error('[Generic] Failed to parse payload for broadcast:', error);
+          payload = null;
+        }
+        
+        const event = genericAdapter.transform(clonedRequest, payload);
         
         // 更新事件计数
         await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
