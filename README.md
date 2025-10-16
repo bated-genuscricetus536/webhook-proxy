@@ -19,11 +19,13 @@
 ## ✨ 特性
 
 - 🔌 **多平台支持**：
-  - 🐙 **GitHub** Webhooks
-  - 🦊 **GitLab** Webhooks  
+  - 🐙 **GitHub** Webhooks（HMAC-SHA256 签名验证）
+  - 🦊 **GitLab** Webhooks（HMAC-SHA256 签名验证）
   - 🤖 **QQ Bot** Webhooks（OpCode 0/13，Ed25519 签名）
   - ✈️ **Telegram** Bot Webhooks（Secret Token 验证）
   - 💳 **Stripe** Webhooks（HMAC-SHA256 签名验证）
+  - ⚙️ **Jenkins** Webhooks（Token 验证）
+  - 📋 **Jira** Webhooks（HMAC-SHA256 签名验证）
   - 🔗 **Generic** Webhook（通用支持，接收任意第三方 Webhook）
 - 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
@@ -519,6 +521,343 @@ stripe trigger payment_intent.succeeded
 4. 选择事件类型并发送
 
 完整 Stripe Webhooks 文档：[https://stripe.com/docs/webhooks](https://stripe.com/docs/webhooks)
+
+### Jenkins Webhook
+
+Jenkins 是最流行的开源 CI/CD 工具，支持灵活的 Webhook 配置。
+
+#### 1. 创建 Jenkins Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Jenkins`
+- **Authentication Token**: 可选，填写认证令牌
+- **签名验证**: 如果设置了 Token 则建议启用
+
+#### 2. 配置 Jenkins Webhook
+
+**方法 1：使用 Generic Webhook Trigger 插件（推荐）**
+
+1. 安装 [Generic Webhook Trigger Plugin](https://plugins.jenkins.io/generic-webhook-trigger/)
+2. 在 Jenkins Job 配置中启用 "Generic Webhook Trigger"
+3. 设置 Webhook URL：
+   ```
+   https://your-domain.com/jenkins/xxxxx?token=your-token
+   ```
+   或在请求头中添加：
+   ```
+   Authorization: Bearer your-token
+   ```
+
+**方法 2：使用 Notification Plugin**
+
+1. 安装 [Notification Plugin](https://plugins.jenkins.io/notification/)
+2. 在 Job 配置中添加 "Job Notifications"
+3. 设置 Endpoint：`https://your-domain.com/jenkins/xxxxx`
+4. 选择要通知的事件（Started, Completed, Finalized）
+
+#### 3. 支持的事件类型
+
+Jenkins Webhook 支持多种构建事件：
+
+**构建阶段：**
+- `build.started` - 构建开始
+- `build.completed` - 构建完成
+- `build.finalized` - 构建最终化
+
+**构建结果：**
+- `build.success` - 构建成功
+- `build.failure` - 构建失败
+- `build.unstable` - 构建不稳定
+- `build.aborted` - 构建中止
+
+#### 4. 接收 Jenkins 事件
+
+接收到的 Jenkins 事件会被转换为统一格式：
+
+```javascript
+{
+  id: 'jenkins-123-xxx',
+  platform: 'jenkins',
+  type: 'build.completed', // 或 build.success, build.failure 等
+  timestamp: 1234567890,
+  headers: {},
+  payload: {
+    name: 'MyProject',
+    url: 'https://jenkins.example.com/job/MyProject/',
+    build: {
+      number: 123,
+      full_url: 'https://jenkins.example.com/job/MyProject/123/',
+      phase: 'COMPLETED',
+      status: 'SUCCESS',
+      result: 'SUCCESS',
+      duration: 45000,
+      scm: {
+        url: 'https://github.com/user/repo.git',
+        branch: 'main',
+        commit: 'abc123...'
+      }
+    }
+  },
+  data: {
+    job_name: 'MyProject',
+    job_url: 'https://jenkins.example.com/job/MyProject/',
+    build_number: 123,
+    build_url: 'https://jenkins.example.com/job/MyProject/123/',
+    build_result: 'SUCCESS',
+    build_phase: 'COMPLETED',
+    build_duration: 45000,
+    scm_url: 'https://github.com/user/repo.git',
+    scm_branch: 'main',
+    scm_commit: 'abc123...'
+  }
+}
+```
+
+#### 5. 使用示例
+
+**WebSocket 方式：**
+```javascript
+const ws = new WebSocket('wss://your-domain.com/jenkins/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  console.log(`[${data.data.job_name}] Build #${data.data.build_number}: ${data.data.build_result}`);
+  
+  if (data.data.build_result === 'FAILURE') {
+    // 构建失败通知
+    sendAlert(`Build failed: ${data.data.job_name} #${data.data.build_number}`);
+  } else if (data.data.build_result === 'SUCCESS') {
+    // 构建成功，执行部署
+    triggerDeployment(data.data);
+  }
+};
+```
+
+**SSE 方式：**
+```javascript
+const es = new EventSource('https://your-domain.com/jenkins/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 实时显示构建状态
+  updateBuildStatus({
+    job: data.data.job_name,
+    number: data.data.build_number,
+    status: data.data.build_result,
+    duration: data.data.build_duration
+  });
+};
+```
+
+#### 6. 最佳实践
+
+✅ **推荐做法：**
+- 使用 Token 验证保护 Webhook
+- 监控关键构建任务
+- 根据构建结果触发自动化流程
+- 记录构建历史用于分析
+
+⚠️ **注意事项：**
+- 确保 Jenkins 可以访问 Webhook URL
+- Token 可以通过 URL 参数或请求头传递
+- 处理构建失败和中止情况
+
+### Jira Webhook
+
+Jira 是企业级项目管理和问题跟踪工具，支持丰富的 Webhook 事件。
+
+#### 1. 创建 Jira Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Jira`
+- **Webhook Secret**: 可选，填写 Secret（用于签名验证）
+- **签名验证**: 如果设置了 Secret 则建议启用
+
+#### 2. 配置 Jira Webhook
+
+1. 登录 Jira（管理员权限）
+2. 进入 **Settings** → **System** → **WebHooks**
+3. 点击 **Create a WebHook**
+4. 填写信息：
+   - **Name**: Webhook Proxy
+   - **Status**: Enabled
+   - **URL**: `https://your-domain.com/jira/xxxxx`
+   - **Secret** (可选): 填写自定义密钥
+   - **Events**: 选择要监听的事件
+5. 保存配置
+
+#### 3. 支持的事件类型
+
+Jira 支持 50+ 种 Webhook 事件：
+
+**Issue 事件：**
+- `issue_created` - Issue 创建
+- `issue_updated` - Issue 更新
+- `issue_deleted` - Issue 删除
+- `issue_assigned` - Issue 分配
+- `issue_commented` - Issue 评论
+
+**工作流事件：**
+- `issue_transitioned` - 状态变更
+- `issue_moved` - Issue 移动
+- `issue_link_created` - 链接创建
+- `issue_link_deleted` - 链接删除
+
+**项目事件：**
+- `project_created` - 项目创建
+- `project_updated` - 项目更新
+- `project_deleted` - 项目删除
+
+**Sprint 事件（Jira Software）：**
+- `sprint_created` - Sprint 创建
+- `sprint_started` - Sprint 开始
+- `sprint_closed` - Sprint 结束
+
+完整事件列表：[Jira Webhook Events](https://developer.atlassian.com/server/jira/platform/webhooks/)
+
+#### 4. 接收 Jira 事件
+
+接收到的 Jira 事件会被转换为统一格式：
+
+```javascript
+{
+  id: 'jira-PROJ-123-xxx',
+  platform: 'jira',
+  type: 'issue_updated',
+  timestamp: 1234567890,
+  headers: {},
+  payload: {
+    timestamp: 1234567890,
+    webhookEvent: 'jira:issue_updated',
+    issue: {
+      key: 'PROJ-123',
+      fields: {
+        summary: 'Bug fix',
+        description: '...',
+        status: { name: 'In Progress' },
+        issuetype: { name: 'Bug' },
+        priority: { name: 'High' },
+        assignee: { displayName: 'John Doe' },
+        reporter: { displayName: 'Jane Smith' },
+        project: { key: 'PROJ', name: 'My Project' }
+      }
+    },
+    changelog: {
+      items: [
+        {
+          field: 'status',
+          fromString: 'To Do',
+          toString: 'In Progress'
+        }
+      ]
+    }
+  },
+  data: {
+    event_type: 'issue_updated',
+    issue_key: 'PROJ-123',
+    issue_summary: 'Bug fix',
+    issue_type: 'Bug',
+    issue_status: 'In Progress',
+    issue_priority: 'High',
+    project_key: 'PROJ',
+    project_name: 'My Project',
+    assignee: 'John Doe',
+    reporter: 'Jane Smith',
+    has_changelog: true
+  }
+}
+```
+
+#### 5. 使用示例
+
+**WebSocket 方式：**
+```javascript
+const ws = new WebSocket('wss://your-domain.com/jira/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  switch (data.type) {
+    case 'issue_created':
+      console.log(`新 Issue: ${data.data.issue_key} - ${data.data.issue_summary}`);
+      // 自动通知团队
+      notifyTeam(data);
+      break;
+      
+    case 'issue_updated':
+      if (data.data.has_changelog) {
+        // 状态变更
+        console.log(`${data.data.issue_key} 状态变更为: ${data.data.issue_status}`);
+      }
+      break;
+      
+    case 'issue_commented':
+      // 新评论通知
+      notifyAssignee(data.payload.comment);
+      break;
+  }
+};
+```
+
+**SSE 方式：**
+```javascript
+const es = new EventSource('https://your-domain.com/jira/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 实时更新看板
+  if (data.type === 'issue_updated' && data.data.has_changelog) {
+    updateKanbanBoard(data.data.issue_key, data.data.issue_status);
+  }
+  
+  // 高优先级 Issue 提醒
+  if (data.type === 'issue_created' && data.data.issue_priority === 'Critical') {
+    sendUrgentAlert(data);
+  }
+};
+```
+
+#### 6. 签名验证机制
+
+Jira 使用 HMAC-SHA256 签名验证：
+
+1. **签名生成**：
+   - Jira 使用配置的 Secret
+   - 对整个请求体进行 HMAC-SHA256 签名
+   - 签名放在请求头中
+
+2. **签名头格式**：
+   ```
+   X-Hub-Signature-256: sha256=<hex_signature>
+   ```
+   或
+   ```
+   X-Atlassian-Webhook-Signature: <hex_signature>
+   ```
+
+3. **验证流程**：
+   - 提取签名头
+   - 使用相同的 Secret 重新计算签名
+   - 使用常量时间比较防止时序攻击
+
+#### 7. 最佳实践
+
+✅ **推荐做法：**
+- 始终启用签名验证（生产环境）
+- 根据项目选择需要的事件类型
+- 使用 Issue Key 作为唯一标识
+- 处理状态变更时检查 changelog
+
+⚠️ **注意事项：**
+- Jira Cloud 和 Server 的 Webhook 格式略有不同
+- 部分事件只在 Jira Software 或 Service Desk 中可用
+- 签名验证在 Jira Cloud 中是可选的
+- 测试时可以使用 Jira 的 Webhook 测试功能
 
 ### Generic Webhook（通用）
 
@@ -1024,6 +1363,8 @@ webhook-proxy/
 │   │   ├── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
 │   │   ├── telegram-cf.ts     # Telegram Bot 适配器 (Secret Token)
 │   │   ├── stripe-cf.ts       # Stripe 适配器 (HMAC-SHA256)
+│   │   ├── jenkins-cf.ts      # Jenkins 适配器 (Token)
+│   │   ├── jira-cf.ts         # Jira 适配器 (HMAC-SHA256)
 │   │   └── generic-cf.ts      # Generic Webhook 适配器 (Bearer Token)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
@@ -1097,12 +1438,15 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [QQ Bot 文档](https://bot.q.qq.com/wiki/)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
 - [Stripe Webhooks](https://stripe.com/docs/webhooks)
+- [Jenkins Webhooks](https://plugins.jenkins.io/generic-webhook-trigger/)
+- [Jira Webhooks](https://developer.atlassian.com/server/jira/platform/webhooks/)
 
 ## 💡 使用场景
 
 - 📱 **实时通知系统** - 将任何平台的 Webhook 事件推送到移动应用
-- 🔔 **CI/CD 监控** - 实时监控构建和部署状态（GitHub、GitLab、Jenkins 等）
+- 🔔 **CI/CD 监控** - 实时监控 Jenkins、GitHub Actions、GitLab CI 构建状态
 - 💳 **支付事件处理** - 实时接收 Stripe 支付、订阅、退款事件
+- 📋 **项目管理集成** - Jira Issue 状态变更实时通知
 - 📊 **事件聚合** - 汇总多个服务的 webhook 事件到统一接口
 - 🔄 **第三方服务集成** - Stripe、Sentry、Docker Hub 等任何支持 Webhook 的服务
 - 📝 **审计日志** - 记录和分析所有 webhook 事件

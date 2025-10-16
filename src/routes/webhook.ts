@@ -6,6 +6,8 @@ import { createQQBotAdapter } from '../adapters/qqbot-cf.js';
 import { createTelegramAdapter } from '../adapters/telegram-cf.js';
 import { createGenericAdapter } from '../adapters/generic-cf.js';
 import { createStripeAdapter } from '../adapters/stripe-cf.js';
+import { createJenkinsAdapter } from '../adapters/jenkins-cf.js';
+import { createJiraAdapter } from '../adapters/jira-cf.js';
 
 // @ts-ignore
 const webhook = new Hono<Env>();
@@ -16,11 +18,11 @@ const webhook = new Hono<Env>();
  */
 webhook.post('/:platform/:randomKey', async (c) => {
   try {
-    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'generic';
+    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'jenkins' | 'jira' | 'generic';
     const randomKey = c.req.param('randomKey');
     
     // 验证平台
-    if (!['github', 'gitlab', 'qqbot', 'telegram', 'stripe', 'generic'].includes(platform)) {
+    if (!['github', 'gitlab', 'qqbot', 'telegram', 'stripe', 'jenkins', 'jira', 'generic'].includes(platform)) {
       return c.text('Invalid platform', 400);
     }
     
@@ -182,6 +184,74 @@ webhook.post('/:platform/:randomKey', async (c) => {
         const body = await clonedRequest.text();
         const stripeEvent = JSON.parse(body);
         const event = stripeAdapter.transform(stripeEvent);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
+    }
+
+    // Jenkins Webhook 处理
+    if (platform === 'jenkins') {
+      const jenkinsAdapter = createJenkinsAdapter({
+        token: proxy.webhook_secret || undefined,
+        verifySignature: proxy.verify_signature,
+      });
+      
+      const clonedRequest = c.req.raw.clone();
+      
+      const response = await jenkinsAdapter.handleWebhook(c.req.raw);
+      
+      // 如果验证成功，转换并广播事件
+      if (response.status === 200) {
+        const body = await clonedRequest.text();
+        const jenkinsEvent = JSON.parse(body);
+        const event = jenkinsAdapter.transform(jenkinsEvent);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
+    }
+
+    // Jira Webhook 处理
+    if (platform === 'jira') {
+      const jiraAdapter = createJiraAdapter({
+        webhookSecret: proxy.webhook_secret || undefined,
+        verifySignature: proxy.verify_signature,
+      });
+      
+      const clonedRequest = c.req.raw.clone();
+      
+      const response = await jiraAdapter.handleWebhook(c.req.raw);
+      
+      // 如果验证成功，转换并广播事件
+      if (response.status === 200) {
+        const body = await clonedRequest.text();
+        const jiraEvent = JSON.parse(body);
+        const event = jiraAdapter.transform(jiraEvent);
         
         // 更新事件计数
         await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
