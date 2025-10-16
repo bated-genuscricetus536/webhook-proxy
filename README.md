@@ -18,6 +18,12 @@
 
 ## ✨ 特性
 
+- ⚡ **高性能架构**：
+  - 统一的 Adapter 接口设计
+  - 自动性能监控和日志
+  - 智能错误处理和重试机制
+  - 内存缓存优化数据库查询
+  - 异步事件广播不阻塞响应
 - 🔌 **多平台支持**：
   - 🐙 **GitHub** Webhooks（HMAC-SHA256 签名验证）
   - 🦊 **GitLab** Webhooks（HMAC-SHA256 签名验证）
@@ -1588,7 +1594,8 @@ webhook-proxy/
 │   ├── middleware/             # 中间件
 │   │   ├── auth.ts            # 认证中间件
 │   │   └── logger.ts          # 日志中间件
-│   ├── adapters/               # 平台适配器
+│   ├── adapters/               # 平台适配器（统一接口）
+│   │   ├── base-cf.ts         # 适配器基类（WebhookAdapter 接口）
 │   │   ├── github-cf.ts       # GitHub 适配器 (HMAC-SHA256)
 │   │   ├── gitlab-cf.ts       # GitLab 适配器 (HMAC-SHA256)
 │   │   ├── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)

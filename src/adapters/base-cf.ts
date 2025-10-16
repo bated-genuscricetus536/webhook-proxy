@@ -1,9 +1,11 @@
 import { WebhookEventData, AdapterConfig } from '../types/index.js';
+import { WebhookAdapter } from '../types/adapter.js';
 
 /**
  * Cloudflare Workers Webhook 适配器基类
+ * 实现统一的 WebhookAdapter 接口
  */
-export abstract class CloudflareWebhookAdapter {
+export abstract class CloudflareWebhookAdapter implements WebhookAdapter {
   protected config: AdapterConfig;
 
   constructor(config: AdapterConfig) {
@@ -15,6 +17,54 @@ export abstract class CloudflareWebhookAdapter {
    */
   getPlatform(): string {
     return this.config.platform;
+  }
+
+  /**
+   * 处理 Webhook 请求（统一接口）
+   * GitHub/GitLab 使用这个方法
+   */
+  async handleWebhook(request: Request): Promise<Response> {
+    try {
+      // 解析请求体
+      const body = await request.json();
+      
+      // 验证签名
+      const isValid = await this.verifySignature(request, body);
+      
+      if (!isValid) {
+        console.error(`[${this.config.platform}] Signature verification failed`);
+        return new Response('Unauthorized', { status: 401 });
+      }
+      
+      // 返回成功响应
+      return new Response('OK', { status: 200 });
+    } catch (error) {
+      console.error(`[${this.config.platform}] Error handling webhook:`, error);
+      return new Response('Bad Request', { status: 400 });
+    }
+  }
+
+  /**
+   * 转换为标准事件格式（统一接口）
+   */
+  transform(payload: any, request?: Request): WebhookEventData {
+    if (request) {
+      const event = this.parse(request, payload);
+      if (event) {
+        return event;
+      }
+    }
+    
+    // 如果没有 request 或 parse 失败，返回基础事件
+    return {
+      id: this.generateEventId(),
+      platform: this.config.platform,
+      type: 'unknown',
+      timestamp: Date.now(),
+      headers: {},
+      payload: payload,
+      data: {},
+    };
   }
 
   /**
