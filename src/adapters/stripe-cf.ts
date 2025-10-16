@@ -5,7 +5,7 @@
  * 文档: https://stripe.com/docs/webhooks/signatures
  */
 
-import { WebhookEvent } from '../types/models.js';
+import { WebhookEventData } from '../types/index.js';
 
 export interface StripeConfig {
   webhookSecret: string; // Stripe Webhook 签名密钥（whsec_xxx）
@@ -189,7 +189,7 @@ export class StripeAdapter {
   /**
    * 转换 Stripe Webhook 为标准事件格式
    */
-  transform(payload: StripeWebhookPayload): WebhookEvent {
+  transform(payload: StripeWebhookPayload): WebhookEventData {
     console.log('[Stripe] Transforming event:', payload.type);
 
     return {

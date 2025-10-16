@@ -5,7 +5,7 @@
  * 文档: https://plugins.jenkins.io/generic-webhook-trigger/
  */
 
-import { WebhookEvent } from '../types/models.js';
+import { WebhookEventData } from '../types/index.js';
 
 export interface JenkinsConfig {
   token?: string; // 可选的认证 Token
@@ -84,7 +84,7 @@ export class JenkinsAdapter {
   /**
    * 转换 Jenkins Webhook 为标准事件格式
    */
-  transform(payload: JenkinsWebhookPayload): WebhookEvent {
+  transform(payload: JenkinsWebhookPayload): WebhookEventData {
     const timestamp = payload.build?.timestamp || Date.now();
     
     // 推断事件类型

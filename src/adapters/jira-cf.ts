@@ -5,7 +5,7 @@
  * 文档: https://developer.atlassian.com/server/jira/platform/webhooks/
  */
 
-import { WebhookEvent } from '../types/models.js';
+import { WebhookEventData } from '../types/index.js';
 
 export interface JiraConfig {
   webhookSecret?: string;
@@ -211,7 +211,7 @@ export class JiraAdapter {
   /**
    * 转换 Jira Webhook 为标准事件格式
    */
-  transform(payload: JiraWebhookPayload): WebhookEvent {
+  transform(payload: JiraWebhookPayload): WebhookEventData {
     const timestamp = payload.timestamp || Date.now();
     
     // 提取事件类型
