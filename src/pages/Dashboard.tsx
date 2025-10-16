@@ -122,7 +122,8 @@ export const Dashboard: FC<{}> = (_props) => {
         const platformIcons = {
           'github': '🐙',
           'gitlab': '🦊',
-          'qqbot': '🤖'
+          'qqbot': '🤖',
+          'telegram': '✈️'
         };
         
         container.innerHTML = data.proxies.map(proxy => \`
@@ -145,10 +146,10 @@ export const Dashboard: FC<{}> = (_props) => {
                 <span class="stat-label">签名验证</span>
                 <span class="stat-value">\${proxy.verify_signature ? '启用' : '禁用'}</span>
               </div>
-              \${proxy.platform === 'qqbot' && proxy.platform_app_id ? \`
+              \${(proxy.platform === 'qqbot' || proxy.platform === 'telegram') && proxy.platform_app_id ? \`
               <div class="stat-item">
-                <span class="stat-label">App ID</span>
-                <span class="stat-value">\${proxy.platform_app_id}</span>
+                <span class="stat-label">\${proxy.platform === 'telegram' ? 'Bot Token' : 'App ID'}</span>
+                <span class="stat-value">\${proxy.platform === 'telegram' && proxy.platform_app_id.length > 20 ? proxy.platform_app_id.substring(0, 20) + '...' : proxy.platform_app_id}</span>
               </div>
               \` : ''}
             </div>
@@ -222,27 +223,42 @@ export const Dashboard: FC<{}> = (_props) => {
       const platform = document.getElementById('proxyPlatform').value;
       const appIdGroup = document.getElementById('appIdGroup');
       const appIdInput = document.getElementById('platformAppId');
+      const appIdLabel = document.getElementById('appIdLabel');
+      const appIdHint = document.getElementById('appIdHint');
       const webhookSecretLabel = document.getElementById('webhookSecretLabel');
       const webhookSecretInput = document.getElementById('webhookSecret');
       const webhookSecretHint = document.getElementById('webhookSecretHint');
       
       if (platform === 'qqbot') {
-        // QQ Bot 需要 App ID
+        // QQ Bot 需要 App ID 和 App Secret
         appIdGroup.style.display = 'block';
         appIdInput.required = true;
+        appIdLabel.textContent = 'App ID *';
+        appIdInput.placeholder = 'QQ Bot App ID';
+        appIdHint.textContent = 'QQ Bot 的机器人 App ID';
         
-        // 更新 Webhook Secret 的标签和提示
         webhookSecretLabel.textContent = 'App Secret *';
         webhookSecretInput.placeholder = 'QQ Bot App Secret';
         webhookSecretInput.required = true;
-        webhookSecretHint.textContent = 'QQ Bot 的机器人密钥，用于签名验证';
+        webhookSecretHint.textContent = 'QQ Bot 的机器人密钥，用于 Ed25519 签名验证';
+      } else if (platform === 'telegram') {
+        // Telegram 需要 Bot Token
+        appIdGroup.style.display = 'block';
+        appIdInput.required = true;
+        appIdLabel.textContent = 'Bot Token *';
+        appIdInput.placeholder = '123456789:ABCdefGHIjklMNOpqrsTUVwxyz';
+        appIdHint.textContent = 'Telegram Bot API Token（从 @BotFather 获取）';
+        
+        webhookSecretLabel.textContent = 'Secret Token';
+        webhookSecretInput.placeholder = '留空或填写自定义 Secret Token';
+        webhookSecretInput.required = false;
+        webhookSecretHint.textContent = '可选的安全令牌，用于验证 Telegram 请求';
       } else {
-        // GitHub/GitLab 不需要 App ID
+        // GitHub/GitLab 不需要额外的 ID
         appIdGroup.style.display = 'none';
         appIdInput.required = false;
         appIdInput.value = '';
         
-        // 恢复默认标签和提示
         webhookSecretLabel.textContent = 'Webhook Secret';
         webhookSecretInput.placeholder = '留空则不验证签名';
         webhookSecretInput.required = false;
@@ -266,6 +282,14 @@ export const Dashboard: FC<{}> = (_props) => {
           return;
         }
       }
+      
+      // Telegram 平台验证
+      if (platform === 'telegram') {
+        if (!platformAppId) {
+          showToast('Telegram 需要填写 Bot Token', 'error');
+          return;
+        }
+      }
 
       try {
         const requestBody = {
@@ -275,8 +299,8 @@ export const Dashboard: FC<{}> = (_props) => {
           verify_signature: verifySignature,
         };
         
-        // 仅在 QQ Bot 平台时添加 platform_app_id
-        if (platform === 'qqbot' && platformAppId) {
+        // QQ Bot 和 Telegram 需要 platform_app_id
+        if ((platform === 'qqbot' || platform === 'telegram') && platformAppId) {
           requestBody.platform_app_id = platformAppId;
         }
 
@@ -632,13 +656,14 @@ export const Dashboard: FC<{}> = (_props) => {
                 <option value="github">GitHub</option>
                 <option value="gitlab">GitLab</option>
                 <option value="qqbot">QQ Bot</option>
+                <option value="telegram">Telegram</option>
               </select>
             </div>
             
             <div class="form-group" id="appIdGroup" style="display: none;">
-              <label for="platformAppId">App ID *</label>
-              <input type="text" id="platformAppId" placeholder="QQ Bot App ID" />
-              <small>QQ Bot 的机器人 App ID</small>
+              <label for="platformAppId" id="appIdLabel">App ID *</label>
+              <input type="text" id="platformAppId" placeholder="平台特定 ID" />
+              <small id="appIdHint">平台特定的标识符</small>
             </div>
             
             <div class="form-group">

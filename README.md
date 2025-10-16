@@ -22,6 +22,7 @@
   - 🐙 **GitHub** Webhooks
   - 🦊 **GitLab** Webhooks  
   - 🤖 **QQ Bot** Webhooks（OpCode 0/13，Ed25519 签名）
+  - ✈️ **Telegram** Bot Webhooks（Secret Token 验证）
 - 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
   - 密码 + 邮箱注册/登录
@@ -236,6 +237,91 @@ QQ Bot 使用 **Ed25519** 数字签名：
 - **OpCode 0** (事件推送)：Webhook Proxy 验证 QQ 平台的签名
 
 验证流程自动完成，无需手动处理。
+
+### Telegram Bot Webhook
+
+Telegram Bot 使用简单的 **Secret Token** 进行身份验证。
+
+#### 1. 创建 Telegram Bot
+
+1. 在 Telegram 中搜索 [@BotFather](https://t.me/BotFather)
+2. 发送 `/newbot` 命令
+3. 按提示设置机器人名称和用户名
+4. 记录 **Bot Token**（格式：`123456789:ABCdefGHIjklMNOpqrsTUVwxyz`）
+
+#### 2. 创建 Telegram Bot Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Telegram`
+- **Bot Token**: 填入从 BotFather 获取的 Token
+- **Secret Token**: 可选，填写自定义的安全令牌
+- **签名验证**: 建议启用
+
+#### 3. 设置 Webhook
+
+使用 Telegram Bot API 设置 Webhook URL：
+
+```bash
+curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://your-domain.com/telegram/xxxxx",
+    "secret_token": "your-secret-token-if-enabled"
+  }'
+```
+
+#### 4. 接收 Telegram 事件
+
+支持的更新类型：
+
+**消息类型：**
+- `message` - 新消息
+- `edited_message` - 编辑的消息
+- `channel_post` - 频道消息
+- `edited_channel_post` - 编辑的频道消息
+
+**交互类型：**
+- `callback_query` - 内联按钮回调
+- `inline_query` - 内联查询
+- `chosen_inline_result` - 选中的内联结果
+
+**其他类型：**
+- `poll` / `poll_answer` - 投票
+- `my_chat_member` / `chat_member` - 成员变更
+- `chat_join_request` - 入群请求
+
+#### 5. 事件数据格式
+
+接收到的 Telegram 事件会被转换为统一格式：
+
+```javascript
+{
+  id: '事件ID',
+  platform: 'telegram',
+  type: 'message',  // 更新类型
+  timestamp: 1234567890,
+  headers: { ... },
+  payload: { ... },  // 原始 Telegram Update 数据
+  data: {
+    update_id: 123456789,
+    event_type: 'message',
+    chat_id: 123456789,
+    user_id: 987654321,
+    message_text: 'Hello, Bot!'
+  }
+}
+```
+
+#### 6. Secret Token 验证
+
+如果启用了 Secret Token：
+
+- Telegram 会在请求头中发送 `X-Telegram-Bot-Api-Secret-Token`
+- Webhook Proxy 验证该 Token 是否匹配
+- 验证失败返回 401 Unauthorized
+
+完整 Telegram Bot 文档：[https://core.telegram.org/bots/api](https://core.telegram.org/bots/api)
 
 ## 🔄 CI/CD 自动部署
 
@@ -598,7 +684,8 @@ webhook-proxy/
 │   ├── adapters/               # 平台适配器
 │   │   ├── github-cf.ts       # GitHub 适配器 (HMAC-SHA256)
 │   │   ├── gitlab-cf.ts       # GitLab 适配器 (HMAC-SHA256)
-│   │   └── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
+│   │   ├── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
+│   │   └── telegram-cf.ts     # Telegram Bot 适配器 (Secret Token)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
 │   ├── db/                     # 数据库操作
@@ -669,16 +756,17 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [GitHub Webhooks](https://docs.github.com/en/webhooks)
 - [GitLab Webhooks](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html)
 - [QQ Bot 文档](https://bot.q.qq.com/wiki/)
+- [Telegram Bot API](https://core.telegram.org/bots/api)
 
 ## 💡 使用场景
 
-- 📱 **实时通知系统** - 将 GitHub/GitLab/QQ Bot 事件推送到移动应用
+- 📱 **实时通知系统** - 将 GitHub/GitLab/QQ Bot/Telegram 事件推送到移动应用
 - 🔔 **CI/CD 监控** - 实时监控构建和部署状态
 - 📊 **事件聚合** - 汇总多个仓库的 webhook 事件
 - 🔄 **跨平台同步** - 同步 GitHub 和 GitLab 事件
 - 📝 **审计日志** - 记录和分析所有 webhook 事件
 - 🎯 **自动化触发** - 基于事件触发自定义工作流
-- 🤖 **QQ Bot 开发** - 将 QQ Bot 事件转换为易于处理的 WebSocket/SSE 流
+- 🤖 **机器人开发** - 将 QQ Bot/Telegram Bot 事件转换为易于处理的 WebSocket/SSE 流
 
 ## ⭐ Star History
 

@@ -172,6 +172,7 @@ export const Docs: FC<{}> = () => {
             <a href="#proxy-management">Proxy 管理</a>
             <a href="#webhook-usage">Webhook 使用</a>
             <a href="#qqbot-integration">QQ Bot 集成</a>
+            <a href="#telegram-integration">Telegram 集成</a>
             <a href="#api-reference">API 参考</a>
             <a href="#ci-cd">CI/CD 部署</a>
             <a href="#deployment">部署指南</a>
@@ -659,6 +660,219 @@ verify(message, signature, publicKey)
                 <strong>💡 获取更多帮助：</strong><br/>
                 - <a href="https://github.com/lc-cn/webhook-proxy/blob/master/QQBOT_GUIDE.md" target="_blank">QQ Bot 集成详细指南</a><br/>
                 - <a href="https://bot.q.qq.com/wiki/" target="_blank">QQ Bot 官方文档</a><br/>
+                - <a href="https://github.com/lc-cn/webhook-proxy/issues" target="_blank">提交 Issue</a>
+              </div>
+            </div>
+
+            {/* Telegram Bot 集成 */}
+            <div class="docs-section" id="telegram-integration">
+              <h2>✈️ Telegram Bot Webhook 集成</h2>
+              
+              <p>Webhook Proxy 支持 Telegram 机器人的 Webhook 事件转发，使用简单的 <strong>Secret Token</strong> 进行身份验证。</p>
+
+              <h3>1. 创建 Telegram Bot</h3>
+              <p>通过 BotFather 创建 Telegram Bot：</p>
+              <ol>
+                <li>在 Telegram 中搜索 <a href="https://t.me/BotFather" target="_blank" rel="noopener">@BotFather</a></li>
+                <li>发送命令 <span class="inline-code">/newbot</span></li>
+                <li>按提示设置机器人名称和用户名</li>
+                <li>BotFather 会返回 <strong>Bot Token</strong>（格式：<span class="inline-code">123456789:ABCdefGHIjklMNOpqrsTUVwxyz</span>）</li>
+                <li>妥善保管 Bot Token，不要泄露给他人</li>
+              </ol>
+
+              <div class="warning">
+                <strong>⚠️ 安全提示：</strong><br/>
+                Bot Token 是敏感信息，拥有它的人可以完全控制你的机器人。请勿将其泄露或提交到代码仓库。
+              </div>
+
+              <h3>2. 创建 Telegram Bot Proxy</h3>
+              <p>在 Dashboard 创建 Proxy 时：</p>
+              <ul>
+                <li><strong>平台</strong>：选择 <span class="inline-code">Telegram</span></li>
+                <li><strong>Bot Token</strong>：填入从 BotFather 获取的 Token</li>
+                <li><strong>Secret Token</strong>：可选，填写自定义的安全令牌（推荐）</li>
+                <li><strong>签名验证</strong>：建议启用</li>
+              </ul>
+
+              <div class="code-block">
+                {`POST /api/proxies
+Authorization: Bearer <token>
+Content-Type: application/json
+
+{
+  "name": "My Telegram Bot",
+  "platform": "telegram",
+  "platform_app_id": "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
+  "webhook_secret": "my-custom-secret-token",
+  "verify_signature": true
+}`}
+              </div>
+
+              <h3>3. 设置 Webhook URL</h3>
+              <p>使用 Telegram Bot API 设置 Webhook URL：</p>
+
+              <div class="code-block">
+                {`# 使用 curl 设置 Webhook
+curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "url": "https://your-domain.com/telegram/xxxxx",
+    "secret_token": "your-secret-token-if-enabled"
+  }'
+
+# 验证 Webhook 设置
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"`}
+              </div>
+
+              <div class="info">
+                <strong>💡 提示：</strong><br/>
+                - 将 <span class="inline-code">&lt;YOUR_BOT_TOKEN&gt;</span> 替换为你的 Bot Token<br/>
+                - 将 <span class="inline-code">xxxxx</span> 替换为 Dashboard 中生成的 random key<br/>
+                - <span class="inline-code">secret_token</span> 必须与创建 Proxy 时设置的一致
+              </div>
+
+              <h3>4. 支持的更新类型</h3>
+              <p>Telegram Bot 支持多种更新类型：</p>
+
+              <p><strong>消息类型：</strong></p>
+              <ul>
+                <li><span class="inline-code">message</span> - 新消息（文本、图片、视频等）</li>
+                <li><span class="inline-code">edited_message</span> - 编辑的消息</li>
+                <li><span class="inline-code">channel_post</span> - 频道消息</li>
+                <li><span class="inline-code">edited_channel_post</span> - 编辑的频道消息</li>
+              </ul>
+
+              <p><strong>交互类型：</strong></p>
+              <ul>
+                <li><span class="inline-code">callback_query</span> - 内联键盘按钮回调</li>
+                <li><span class="inline-code">inline_query</span> - 内联查询</li>
+                <li><span class="inline-code">chosen_inline_result</span> - 选中的内联结果</li>
+              </ul>
+
+              <p><strong>支付和其他：</strong></p>
+              <ul>
+                <li><span class="inline-code">shipping_query</span> - 配送查询</li>
+                <li><span class="inline-code">pre_checkout_query</span> - 预结账查询</li>
+                <li><span class="inline-code">poll</span> / <span class="inline-code">poll_answer</span> - 投票</li>
+                <li><span class="inline-code">my_chat_member</span> / <span class="inline-code">chat_member</span> - 成员状态变更</li>
+                <li><span class="inline-code">chat_join_request</span> - 入群请求</li>
+              </ul>
+
+              <div class="info">
+                <strong>📚 完整文档：</strong><br/>
+                访问 <a href="https://core.telegram.org/bots/api#update" target="_blank" rel="noopener">Telegram Bot API 文档</a> 查看所有更新类型。
+              </div>
+
+              <h3>5. 接收 Telegram 事件</h3>
+              <p><strong>WebSocket 方式：</strong></p>
+              <div class="code-block">
+                {`const ws = new WebSocket('wss://your-domain.com/telegram/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  console.log('Telegram 事件:', data);
+  
+  // 事件结构：
+  // {
+  //   id: '事件ID',
+  //   platform: 'telegram',
+  //   type: 'message',  // 更新类型
+  //   timestamp: 1234567890,
+  //   headers: { ... },
+  //   payload: { ... },  // 原始 Telegram Update
+  //   data: {
+  //     update_id: 123456789,
+  //     event_type: 'message',
+  //     chat_id: 123456789,
+  //     user_id: 987654321,
+  //     message_text: 'Hello, Bot!'
+  //   }
+  // }
+  
+  // 处理不同类型的消息
+  if (data.type === 'message' && data.payload.message) {
+    const msg = data.payload.message;
+    console.log('消息文本:', msg.text);
+    console.log('发送者:', msg.from.username);
+  }
+};`}
+              </div>
+
+              <p><strong>SSE 方式：</strong></p>
+              <div class="code-block">
+                {`const es = new EventSource('https://your-domain.com/telegram/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 根据事件类型处理
+  switch (data.type) {
+    case 'message':
+      console.log('新消息:', data.data.message_text);
+      break;
+    case 'callback_query':
+      console.log('按钮回调:', data.payload.callback_query.data);
+      break;
+    case 'inline_query':
+      console.log('内联查询:', data.payload.inline_query.query);
+      break;
+  }
+};`}
+              </div>
+
+              <h3>6. Secret Token 验证</h3>
+              <p>Secret Token 提供额外的安全保护：</p>
+              <ul>
+                <li>Telegram 在每次请求时发送 <span class="inline-code">X-Telegram-Bot-Api-Secret-Token</span> 头</li>
+                <li>Webhook Proxy 验证该 Token 是否与配置的 Secret Token 匹配</li>
+                <li>验证失败返回 <span class="inline-code">401 Unauthorized</span></li>
+                <li>Secret Token 长度应为 1-256 个字符</li>
+              </ul>
+
+              <div class="code-block">
+                {`// Telegram 请求头示例：
+X-Telegram-Bot-Api-Secret-Token: my-custom-secret-token
+
+// Webhook Proxy 验证流程：
+if (secretToken !== configured_secret_token) {
+  return 401 Unauthorized;
+}`}
+              </div>
+
+              <div class="success">
+                <strong>✅ 最佳实践：</strong><br/>
+                1. 始终使用 HTTPS（Telegram 要求）<br/>
+                2. 设置 Secret Token 增强安全性<br/>
+                3. 定期检查 Webhook 状态（使用 <span class="inline-code">getWebhookInfo</span>）<br/>
+                4. 处理所有可能的更新类型
+              </div>
+
+              <h3>7. 常见问题</h3>
+              <p><strong>Webhook 设置失败：</strong></p>
+              <ul>
+                <li>确保 URL 使用 HTTPS</li>
+                <li>检查端口是否为 443、80、88 或 8443</li>
+                <li>验证 SSL 证书是否有效</li>
+                <li>确认 Bot Token 正确</li>
+              </ul>
+
+              <p><strong>收不到消息：</strong></p>
+              <ul>
+                <li>使用 <span class="inline-code">getWebhookInfo</span> 检查 Webhook 状态</li>
+                <li>查看是否有待处理的更新（<span class="inline-code">pending_update_count</span>）</li>
+                <li>检查 Secret Token 是否匹配</li>
+                <li>查看 Cloudflare Workers 日志</li>
+              </ul>
+
+              <p><strong>删除 Webhook：</strong></p>
+              <div class="code-block">
+                {`curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook"`}
+              </div>
+
+              <div class="info">
+                <strong>💡 获取更多帮助：</strong><br/>
+                - <a href="https://core.telegram.org/bots/api" target="_blank">Telegram Bot API 文档</a><br/>
+                - <a href="https://core.telegram.org/bots/webhooks" target="_blank">Telegram Webhooks 指南</a><br/>
                 - <a href="https://github.com/lc-cn/webhook-proxy/issues" target="_blank">提交 Issue</a>
               </div>
             </div>
