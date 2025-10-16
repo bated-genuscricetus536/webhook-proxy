@@ -43,7 +43,7 @@ export interface Proxy {
   id: string;
   user_id: string;
   name: string;
-  platform: 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'generic';
+  platform: 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'generic';
   random_key: string;
   access_token: string | null;
   webhook_secret: string | null;
@@ -58,7 +58,7 @@ export interface Proxy {
 
 export interface CreateProxyRequest {
   name: string;
-  platform: 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'generic';
+  platform: 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'generic';
   webhook_secret?: string;
   platform_app_id?: string; // QQ Bot App ID / Telegram Bot Token
   verify_signature?: boolean;

@@ -5,6 +5,7 @@ import { GitHubAdapter, GitLabAdapter } from '../adapters/index-cf.js';
 import { createQQBotAdapter } from '../adapters/qqbot-cf.js';
 import { createTelegramAdapter } from '../adapters/telegram-cf.js';
 import { createGenericAdapter } from '../adapters/generic-cf.js';
+import { createStripeAdapter } from '../adapters/stripe-cf.js';
 
 // @ts-ignore
 const webhook = new Hono<Env>();
@@ -15,11 +16,11 @@ const webhook = new Hono<Env>();
  */
 webhook.post('/:platform/:randomKey', async (c) => {
   try {
-    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'generic';
+    const platform = c.req.param('platform') as 'github' | 'gitlab' | 'qqbot' | 'telegram' | 'stripe' | 'generic';
     const randomKey = c.req.param('randomKey');
     
     // 验证平台
-    if (!['github', 'gitlab', 'qqbot', 'telegram', 'generic'].includes(platform)) {
+    if (!['github', 'gitlab', 'qqbot', 'telegram', 'stripe', 'generic'].includes(platform)) {
       return c.text('Invalid platform', 400);
     }
     
@@ -146,6 +147,41 @@ webhook.post('/:platform/:randomKey', async (c) => {
         }
         
         const event = genericAdapter.transform(clonedRequest, payload);
+        
+        // 更新事件计数
+        await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);
+        
+        // 广播到 Durable Object
+        const doId = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.idFromName(randomKey);
+        const doStub = (c.env as Record<string, any>).WEBHOOK_CONNECTIONS.get(doId);
+        
+        await doStub.fetch(new Request(`https://do/broadcast`, {
+          method: 'POST',
+          body: JSON.stringify(event),
+          headers: { 'Content-Type': 'application/json' },
+        }));
+      }
+      
+      return response;
+    }
+
+    // Stripe Webhook 处理
+    if (platform === 'stripe') {
+      const stripeAdapter = createStripeAdapter({
+        webhookSecret: proxy.webhook_secret || '',
+        verifySignature: proxy.verify_signature,
+      });
+      
+      // Stripe 需要原始请求体进行签名验证
+      const clonedRequest = c.req.raw.clone();
+      
+      const response = await stripeAdapter.handleWebhook(c.req.raw);
+      
+      // 如果验证成功，转换并广播事件
+      if (response.status === 200) {
+        const body = await clonedRequest.text();
+        const stripeEvent = JSON.parse(body);
+        const event = stripeAdapter.transform(stripeEvent);
         
         // 更新事件计数
         await updateProxyEventCount(c.env!.DB as D1Database, proxy.id);

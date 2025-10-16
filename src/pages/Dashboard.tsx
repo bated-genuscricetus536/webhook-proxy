@@ -124,6 +124,7 @@ export const Dashboard: FC<{}> = (_props) => {
           'gitlab': '🦊',
           'qqbot': '🤖',
           'telegram': '✈️',
+          'stripe': '💳',
           'generic': '🔗'
         };
         
@@ -254,6 +255,16 @@ export const Dashboard: FC<{}> = (_props) => {
         webhookSecretInput.placeholder = '留空或填写自定义 Secret Token';
         webhookSecretInput.required = false;
         webhookSecretHint.textContent = '可选的安全令牌，用于验证 Telegram 请求';
+      } else if (platform === 'stripe') {
+        // Stripe 不需要 App ID
+        appIdGroup.style.display = 'none';
+        appIdInput.required = false;
+        appIdInput.value = '';
+        
+        webhookSecretLabel.textContent = 'Webhook Signing Secret *';
+        webhookSecretInput.placeholder = 'whsec_...';
+        webhookSecretInput.required = true;
+        webhookSecretHint.textContent = 'Stripe Webhook 签名密钥（从 Stripe Dashboard 获取）';
       } else if (platform === 'generic') {
         // Generic Webhook 不需要 App ID
         appIdGroup.style.display = 'none';
@@ -668,6 +679,7 @@ export const Dashboard: FC<{}> = (_props) => {
                 <option value="gitlab">GitLab</option>
                 <option value="qqbot">QQ Bot</option>
                 <option value="telegram">Telegram</option>
+                <option value="stripe">Stripe</option>
                 <option value="generic">Generic Webhook</option>
               </select>
             </div>

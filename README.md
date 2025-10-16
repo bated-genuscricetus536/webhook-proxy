@@ -23,6 +23,7 @@
   - 🦊 **GitLab** Webhooks  
   - 🤖 **QQ Bot** Webhooks（OpCode 0/13，Ed25519 签名）
   - ✈️ **Telegram** Bot Webhooks（Secret Token 验证）
+  - 💳 **Stripe** Webhooks（HMAC-SHA256 签名验证）
   - 🔗 **Generic** Webhook（通用支持，接收任意第三方 Webhook）
 - 🌐 **多协议支持**：WebSocket 和 SSE 实时推送
 - 👤 **完整用户系统**：
@@ -323,6 +324,201 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \
 - 验证失败返回 401 Unauthorized
 
 完整 Telegram Bot 文档：[https://core.telegram.org/bots/api](https://core.telegram.org/bots/api)
+
+### Stripe Webhook
+
+Stripe 是全球领先的支付平台，使用标准的 **HMAC-SHA256** 签名验证 Webhook。
+
+#### 1. 创建 Stripe Proxy
+
+在 Dashboard 创建 Proxy 时：
+
+- **平台**: 选择 `Stripe`
+- **Webhook Signing Secret**: 填入 Stripe Webhook 签名密钥（`whsec_xxx`）
+- **签名验证**: 建议启用
+
+#### 2. 获取 Webhook Signing Secret
+
+1. 登录 [Stripe Dashboard](https://dashboard.stripe.com/)
+2. 进入 **Developers** → **Webhooks**
+3. 点击 **Add endpoint**
+4. 填入 Webhook URL：`https://your-domain.com/stripe/xxxxx`
+5. 选择要监听的事件类型
+6. 创建后，点击 **Signing secret** 旁边的 **Reveal** 查看密钥
+7. 复制 `whsec_xxx` 格式的密钥
+
+#### 3. 支持的事件类型
+
+Stripe 支持 100+ 种事件类型，常用的包括：
+
+**支付相关：**
+- `payment_intent.succeeded` - 支付成功
+- `payment_intent.payment_failed` - 支付失败
+- `payment_intent.canceled` - 支付取消
+- `payment_intent.created` - 支付创建
+
+**订阅相关：**
+- `customer.subscription.created` - 订阅创建
+- `customer.subscription.updated` - 订阅更新
+- `customer.subscription.deleted` - 订阅取消
+- `invoice.paid` - 发票已支付
+- `invoice.payment_failed` - 发票支付失败
+
+**退款相关：**
+- `charge.refunded` - 退款完成
+- `refund.created` - 退款创建
+- `refund.updated` - 退款更新
+
+**其他事件：**
+- `checkout.session.completed` - Checkout 会话完成
+- `customer.created` - 客户创建
+- `customer.updated` - 客户更新
+
+完整事件列表：[Stripe Event Types](https://stripe.com/docs/api/events/types)
+
+#### 4. 接收 Stripe 事件
+
+接收到的 Stripe 事件会被转换为统一格式：
+
+```javascript
+{
+  id: 'stripe-evt_xxx',
+  platform: 'stripe',
+  type: 'payment_intent.succeeded',  // Stripe 事件类型
+  timestamp: 1234567890,
+  headers: {},
+  payload: {
+    id: 'evt_xxx',
+    object: 'event',
+    type: 'payment_intent.succeeded',
+    data: {
+      object: { /* PaymentIntent 对象 */ }
+    },
+    created: 1234567890,
+    livemode: true
+  },
+  data: {
+    event_id: 'evt_xxx',
+    event_type: 'payment_intent.succeeded',
+    livemode: true,
+    object_type: 'payment_intent',
+    object_id: 'pi_xxx',
+    api_version: '2023-10-16'
+  }
+}
+```
+
+#### 5. 使用示例
+
+**WebSocket 方式：**
+```javascript
+const ws = new WebSocket('wss://your-domain.com/stripe/xxxxx/ws?token=your_access_token');
+
+ws.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 处理不同类型的 Stripe 事件
+  switch (data.type) {
+    case 'payment_intent.succeeded':
+      const paymentIntent = data.payload.data.object;
+      console.log('支付成功:', paymentIntent.id);
+      console.log('金额:', paymentIntent.amount / 100, paymentIntent.currency);
+      break;
+      
+    case 'customer.subscription.created':
+      const subscription = data.payload.data.object;
+      console.log('新订阅:', subscription.id);
+      console.log('客户:', subscription.customer);
+      break;
+      
+    case 'invoice.payment_failed':
+      const invoice = data.payload.data.object;
+      console.log('支付失败:', invoice.id);
+      // 发送提醒邮件等
+      break;
+  }
+};
+```
+
+**SSE 方式：**
+```javascript
+const es = new EventSource('https://your-domain.com/stripe/xxxxx/sse?token=your_access_token');
+
+es.onmessage = (event) => {
+  const data = JSON.parse(event.data);
+  
+  // 实时处理 Stripe 事件
+  if (data.type === 'payment_intent.succeeded') {
+    // 更新订单状态
+    updateOrderStatus(data.payload.data.object.id, 'paid');
+  }
+};
+```
+
+#### 6. 签名验证机制
+
+Stripe 使用以下机制确保 Webhook 安全：
+
+1. **签名生成**：
+   - Stripe 使用 HMAC-SHA256 算法
+   - 签名字符串格式：`timestamp.payload`
+   - 签名结果放在 `Stripe-Signature` 请求头
+
+2. **签名头格式**：
+   ```
+   Stripe-Signature: t=1234567890,v1=signature_hex,v0=old_signature_hex
+   ```
+
+3. **验证流程**：
+   - 提取时间戳 `t` 和签名 `v1`
+   - 检查时间戳（防止重放攻击，5 分钟容差）
+   - 重新计算签名并比较
+   - 使用常量时间比较防止时序攻击
+
+4. **测试模式**：
+   - 测试环境使用 `whsec_xxx` 开头的密钥
+   - 生产环境也使用相同格式的密钥
+   - 两个环境的密钥不同
+
+#### 7. 最佳实践
+
+✅ **推荐做法：**
+- 始终启用签名验证
+- 使用幂等性处理（Stripe 可能重发事件）
+- 快速响应 200 OK（Stripe 10 秒超时）
+- 异步处理业务逻辑
+- 记录所有事件用于审计
+
+⚠️ **注意事项：**
+- 不要在 Webhook 中执行长时间操作
+- 事件可能乱序到达
+- 同一事件可能收到多次
+- 测试和生产环境使用不同的 Webhook 端点
+
+#### 8. 测试 Stripe Webhook
+
+**使用 Stripe CLI：**
+```bash
+# 安装 Stripe CLI
+brew install stripe/stripe-cli/stripe
+
+# 登录
+stripe login
+
+# 转发 Webhook 到本地（测试用）
+stripe listen --forward-to https://your-domain.com/stripe/xxxxx
+
+# 触发测试事件
+stripe trigger payment_intent.succeeded
+```
+
+**使用 Stripe Dashboard：**
+1. 进入 Webhooks 页面
+2. 点击你的 Webhook 端点
+3. 点击 **Send test webhook**
+4. 选择事件类型并发送
+
+完整 Stripe Webhooks 文档：[https://stripe.com/docs/webhooks](https://stripe.com/docs/webhooks)
 
 ### Generic Webhook（通用）
 
@@ -827,6 +1023,7 @@ webhook-proxy/
 │   │   ├── gitlab-cf.ts       # GitLab 适配器 (HMAC-SHA256)
 │   │   ├── qqbot-cf.ts        # QQ Bot 适配器 (Ed25519)
 │   │   ├── telegram-cf.ts     # Telegram Bot 适配器 (Secret Token)
+│   │   ├── stripe-cf.ts       # Stripe 适配器 (HMAC-SHA256)
 │   │   └── generic-cf.ts      # Generic Webhook 适配器 (Bearer Token)
 │   ├── auth/                   # OAuth 提供者
 │   │   └── oauth.ts
@@ -899,11 +1096,13 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 - [GitLab Webhooks](https://docs.gitlab.com/ee/user/project/integrations/webhooks.html)
 - [QQ Bot 文档](https://bot.q.qq.com/wiki/)
 - [Telegram Bot API](https://core.telegram.org/bots/api)
+- [Stripe Webhooks](https://stripe.com/docs/webhooks)
 
 ## 💡 使用场景
 
 - 📱 **实时通知系统** - 将任何平台的 Webhook 事件推送到移动应用
 - 🔔 **CI/CD 监控** - 实时监控构建和部署状态（GitHub、GitLab、Jenkins 等）
+- 💳 **支付事件处理** - 实时接收 Stripe 支付、订阅、退款事件
 - 📊 **事件聚合** - 汇总多个服务的 webhook 事件到统一接口
 - 🔄 **第三方服务集成** - Stripe、Sentry、Docker Hub 等任何支持 Webhook 的服务
 - 📝 **审计日志** - 记录和分析所有 webhook 事件
