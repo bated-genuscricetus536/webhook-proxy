@@ -4,12 +4,14 @@
 
 ## 特性
 
-- ✅ GitHub OAuth 登录
-- ✅ Token 本地缓存
-- ✅ Proxies 管理 (增删改查)
-- ✅ 自动认证检查
-- ✅ 交互式命令
-- ✅ **完整 Secret 显示**：即使启用了 MFA/Passkey，CLI 也会显示完整的 `access_token` 和 `webhook_secret`（Web Dashboard 会掩码显示）
+- 🌐 **开箱即用**：默认连接到官方服务 `https://hooks.zhin.dev`，无需配置
+- 🔐 **多种登录方式**：GitHub OAuth、GitLab OAuth、用户名/密码、Passkey、手动 Token
+- 📋 **Proxies 管理**：增删改查操作
+- 💾 **Token 本地缓存**：自动保存登录状态
+- ✅ **自动认证检查**：权限不足时自动提示登录
+- 🎨 **交互式命令**：友好的命令行界面
+- 🛡️ **完整 Secret 显示**：CLI 始终显示完整的 `access_token` 和 `webhook_secret`（Web Dashboard 在启用 MFA/Passkey 时会掩码显示）
+- ⚙️ **自建服务支持**：可配置连接到自己部署的服务
 
 ## 安装
 
@@ -30,14 +32,30 @@ npm install -g webhook-proxy-cli
 
 ## 快速开始
 
-### 1. 配置 API 地址
+### 1. 直接登录（使用官方服务）
+
+CLI 默认连接到官方服务 **`https://hooks.zhin.dev`**，无需配置即可使用：
 
 ```bash
-# 设置 API 地址（默认为 http://localhost:8787）
-webhook-proxy config set-api https://your-api-domain.com
+# 直接登录，使用官方服务
+webhook-proxy login
 ```
 
-### 2. 登录
+**注意**：如果您使用官方托管服务，可以跳过配置步骤，直接登录使用！
+
+### 2. 配置自建服务（可选）
+
+**仅当您自建了 webhook-proxy 服务时**才需要配置 API 地址：
+
+```bash
+# 设置自建服务的 API 地址
+webhook-proxy config set-api https://your-api-domain.com
+
+# 查看当前配置
+webhook-proxy config show
+```
+
+### 3. 登录
 
 CLI 支持**多种登录方式**，满足不同场景需求：
 
@@ -167,7 +185,7 @@ webhook-proxy login
 4. 复制 session cookie 的值
 5. 在 CLI 中粘贴 token
 
-### 3. 管理 Proxies
+### 4. 管理 Proxies
 
 ```bash
 # 列出所有 proxies
@@ -270,18 +288,16 @@ webhook-proxy config show
 
 #### `webhook-proxy config set-api <url>`
 
-设置 API URL。
+设置自建服务的 API URL。
+
+**注意**：仅当您自建了 webhook-proxy 服务时需要设置。默认使用官方服务 `https://hooks.zhin.dev`。
 
 ```bash
+# 设置自建服务地址
 webhook-proxy config set-api https://your-api-domain.com
-```
 
-#### `webhook-proxy config set-github`
-
-配置 GitHub OAuth（交互式）。
-
-```bash
-webhook-proxy config set-github
+# 恢复默认（官方服务）
+webhook-proxy config set-api https://hooks.zhin.dev
 ```
 
 #### `webhook-proxy config interactive`
@@ -302,34 +318,55 @@ webhook-proxy config i
 
 ```json
 {
-  "apiUrl": "http://localhost:8787",
+  "apiUrl": "https://hooks.zhin.dev",
   "token": "your-session-token"
 }
 ```
 
+### 默认 API URL
+
+CLI 默认连接到官方托管服务：**`https://hooks.zhin.dev`**
+
+**使用场景**：
+- ✅ **官方服务用户**：无需配置，直接使用
+- ⚙️ **自建服务用户**：需要通过 `config set-api` 设置自己的服务地址
+
 ### 环境变量
 
-CLI 支持通过环境变量配置：
+CLI 支持通过环境变量配置（高级用法）：
 
-**API_URL** - API 服务器地址
+**API_URL** - 覆盖默认 API 服务器地址
 
 ```bash
 # Linux/macOS
-export API_URL=https://api.your-domain.com
+export API_URL=https://your-api.example.com
 
 # Windows (PowerShell)
-$env:API_URL="https://api.your-domain.com"
+$env:API_URL="https://your-api.example.com"
 
 # 使用 CLI
 webhook-proxy login
 ```
 
-**优先级**（从高到低）：
-1. 配置文件 (`~/.webhook-proxy/config.json`)
-2. 环境变量 (`API_URL`)
-3. 默认值 (`http://localhost:8787`)
+### 配置优先级
 
-详细说明请参考 [ENV_VARS.md](./ENV_VARS.md)
+从高到低：
+1. **配置文件** (`~/.webhook-proxy/config.json`) - 通过 `config set-api` 设置
+2. **环境变量** (`API_URL`) - 临时覆盖
+3. **默认值** (`https://hooks.zhin.dev`) - 官方服务
+
+**示例场景**：
+```bash
+# 场景 1: 使用官方服务（默认）
+webhook-proxy login  # 连接到 https://hooks.zhin.dev
+
+# 场景 2: 自建服务
+webhook-proxy config set-api https://my-hooks.example.com
+webhook-proxy login  # 连接到 https://my-hooks.example.com
+
+# 场景 3: 临时测试另一个服务
+API_URL=https://test-api.example.com webhook-proxy login
+```
 
 ### Secret 处理
 
@@ -349,21 +386,23 @@ webhook-proxy login
 ### 完整工作流程
 
 ```bash
-# 1. 配置 CLI
-webhook-proxy config set-api https://your-api-domain.com
-
-# 2. 登录
+# 1. 登录（使用官方服务）
 webhook-proxy login
-# 选择登录方式（浏览器自动登录 或 手动输入 Token）
+# 选择登录方式（推荐 GitHub OAuth）
 
-# 3. 查看配置确认登录成功
+# 2. 查看配置确认登录成功
 webhook-proxy config show
 
-# 4. 列出现有 proxies
+# 3. 列出现有 proxies
 webhook-proxy list
 
-# 5. 创建新的 GitHub webhook proxy
+# 4. 创建新的 GitHub webhook proxy
 webhook-proxy proxy create
+
+# ===== 自建服务用户额外步骤 =====
+# 0. 配置自建服务地址（在登录前）
+webhook-proxy config set-api https://your-api-domain.com
+# 然后继续上述步骤
 # 选择:
 # - Name: My GitHub Webhook
 # - Platform: github
