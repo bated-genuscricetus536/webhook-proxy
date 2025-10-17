@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Webhook proxy core service - 开源 webhook 代理方案",
   "type": "module",
+  "private": true,
   "main": "./src/index.ts",
   "scripts": {
     "dev": "wrangler dev",
