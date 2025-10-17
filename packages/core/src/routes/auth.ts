@@ -8,6 +8,7 @@ const auth = new Hono<Env>();
 
 /**
  * GitHub OAuth 登录
+ * 支持 CLI 登录：通过 cli_redirect 参数指定 CLI 回调地址
  */
 auth.get('/github', async (c) => {
   try {
@@ -15,12 +16,16 @@ auth.get('/github', async (c) => {
     const url = new URL(c.req.url);
     const redirectUri = `${url.origin}/auth/github/callback`;
     
+    // 获取 CLI 回调地址（用于 CLI 登录）
+    const cliRedirect = c.req.query('cli_redirect');
+    
     const state = generateState();
     
     // 存储 state 到 KV（5分钟过期）- 登录模式
     await (c.env as any).SESSIONS.put(`oauth_state:${state}`, JSON.stringify({
       platform: 'github',
       mode: 'login',
+      cli_redirect: cliRedirect || null, // 保存 CLI 回调地址
     }), { expirationTtl: 300 });
     
     const authUrl = provider.getAuthUrl(state, redirectUri);
@@ -34,6 +39,7 @@ auth.get('/github', async (c) => {
 
 /**
  * GitLab OAuth 登录
+ * 支持 CLI 登录：通过 cli_redirect 参数指定 CLI 回调地址
  */
 auth.get('/gitlab', async (c) => {
   try {
@@ -41,12 +47,16 @@ auth.get('/gitlab', async (c) => {
     const url = new URL(c.req.url);
     const redirectUri = `${url.origin}/auth/gitlab/callback`;
     
+    // 获取 CLI 回调地址（用于 CLI 登录）
+    const cliRedirect = c.req.query('cli_redirect');
+    
     const state = generateState();
     
     // 存储 state 到 KV（5分钟过期）- 登录模式
     await (c.env as any).SESSIONS.put(`oauth_state:${state}`, JSON.stringify({
       platform: 'gitlab',
       mode: 'login',
+      cli_redirect: cliRedirect || null, // 保存 CLI 回调地址
     }), { expirationTtl: 300 });
     
     const authUrl = provider.getAuthUrl(state, redirectUri);
@@ -125,7 +135,7 @@ async function handleOAuthCallback(c: Context<{ Bindings: Env }>, platform: 'git
       return c.text('Invalid or expired state', 400);
     }
     
-    const { platform: storedPlatform, mode, userId } = JSON.parse(storedData);
+    const { platform: storedPlatform, mode, userId, cli_redirect } = JSON.parse(storedData);
     if (storedPlatform !== platform) {
       return c.text('Invalid state', 400);
     }
@@ -189,18 +199,34 @@ async function handleOAuthCallback(c: Context<{ Bindings: Env }>, platform: 'git
         expirationTtl: 30 * 24 * 60 * 60,
       });
       
-      // 重定向到 Dashboard
-      const isProduction = url.hostname !== 'localhost' && !url.hostname.startsWith('127.0.0.1');
-      const secureCookie = isProduction ? '; Secure' : '';
-      
-      const response = new Response(null, {
-        status: 302,
-        headers: {
-          'Location': `/dashboard?token=${encodeURIComponent(sessionToken)}`,
-          'Set-Cookie': `session=${sessionToken}; Path=/; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}${secureCookie}`,
-        },
-      });
-      return response;
+      // 判断是 CLI 登录还是 Web 登录
+      if (cli_redirect) {
+        // CLI 登录模式：重定向到 CLI 本地服务器
+        console.log(`[Auth] CLI login detected, redirecting to: ${cli_redirect}`);
+        const cliRedirectUrl = new URL(cli_redirect);
+        cliRedirectUrl.searchParams.set('token', sessionToken);
+        
+        const response = new Response(null, {
+          status: 302,
+          headers: {
+            'Location': cliRedirectUrl.toString(),
+          },
+        });
+        return response;
+      } else {
+        // Web 登录模式：重定向到 Dashboard
+        const isProduction = url.hostname !== 'localhost' && !url.hostname.startsWith('127.0.0.1');
+        const secureCookie = isProduction ? '; Secure' : '';
+        
+        const response = new Response(null, {
+          status: 302,
+          headers: {
+            'Location': `/dashboard?token=${encodeURIComponent(sessionToken)}`,
+            'Set-Cookie': `session=${sessionToken}; Path=/; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}${secureCookie}`,
+          },
+        });
+        return response;
+      }
     }
     
     // 模式 2：绑定模式（已登录）

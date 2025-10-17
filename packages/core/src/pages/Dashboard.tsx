@@ -1,10 +1,17 @@
 import { FC } from 'hono/jsx';
 import { DashboardLayout } from '../components/DashboardLayout';
 
-export const Dashboard: FC<{}> = (_props) => {
+interface DashboardProps {
+  passkeyLogin?: boolean;
+  cliRedirect?: string | null;
+}
+
+export const Dashboard: FC<DashboardProps> = (props) => {
   const dashboardScript = `
     const API_BASE = '';
     let sessionToken = '';
+    const PASSKEY_LOGIN = ${props.passkeyLogin || false};
+    const CLI_REDIRECT = ${props.cliRedirect ? `'${props.cliRedirect}'` : 'null'};
 
     // Base64URL 编码/解码辅助函数
     function uint8ArrayToBase64url(array) {
@@ -646,8 +653,120 @@ export const Dashboard: FC<{}> = (_props) => {
       });
     }
 
+    // CLI Passkey 登录函数
+    async function performCliPasskeyLogin() {
+      try {
+        showToast('正在启动 Passkey 登录...', 'info');
+        
+        // 1. 获取 Passkey 认证选项（不需要认证）
+        const optionsResponse = await fetch('/api/security/passkey/login/options', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        if (!optionsResponse.ok) {
+          throw new Error('获取认证选项失败');
+        }
+        
+        const { options } = await optionsResponse.json();
+        
+        // 转换 challenge 和 allowCredentials
+        if (typeof options.challenge === 'string') {
+          options.challenge = base64urlToUint8Array(options.challenge);
+        }
+        
+        if (options.allowCredentials) {
+          options.allowCredentials = options.allowCredentials.map(cred => ({
+            ...cred,
+            id: base64urlToUint8Array(cred.id)
+          }));
+        }
+        
+        showToast('请使用您的 Passkey 进行认证...', 'info');
+        
+        // 2. 调用 WebAuthn API
+        const credential = await navigator.credentials.get({
+          publicKey: options
+        });
+        
+        if (!credential) {
+          throw new Error('未获取到凭据');
+        }
+        
+        // 3. 转换响应为 JSON 格式
+        const credentialJSON = {
+          id: credential.id,
+          rawId: uint8ArrayToBase64url(new Uint8Array(credential.rawId)),
+          response: {
+            authenticatorData: uint8ArrayToBase64url(new Uint8Array(credential.response.authenticatorData)),
+            clientDataJSON: uint8ArrayToBase64url(new Uint8Array(credential.response.clientDataJSON)),
+            signature: uint8ArrayToBase64url(new Uint8Array(credential.response.signature)),
+            userHandle: credential.response.userHandle ? uint8ArrayToBase64url(new Uint8Array(credential.response.userHandle)) : null
+          },
+          type: credential.type
+        };
+        
+        showToast('正在验证...', 'info');
+        
+        // 4. 验证认证
+        const verifyResponse = await fetch('/api/security/passkey/login/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ response: credentialJSON })
+        });
+        
+        if (!verifyResponse.ok) {
+          const errorData = await verifyResponse.json();
+          throw new Error(errorData.error || '验证失败');
+        }
+        
+        const verifyData = await verifyResponse.json();
+        const sessionToken = verifyData.session_token;
+        
+        if (!sessionToken) {
+          throw new Error('未收到 session token');
+        }
+        
+        showToast('登录成功！正在重定向...', 'success');
+        
+        // 5. 如果有 CLI 回调地址，重定向到 CLI
+        if (CLI_REDIRECT) {
+          const redirectUrl = new URL(CLI_REDIRECT);
+          redirectUrl.searchParams.set('token', sessionToken);
+          window.location.href = redirectUrl.toString();
+        } else {
+          // 如果没有 CLI 回调，保存 token 并刷新页面
+          window.location.href = \`/dashboard?token=\${sessionToken}\`;
+        }
+        
+      } catch (error) {
+        console.error('CLI Passkey login error:', error);
+        if (error.name === 'NotAllowedError') {
+          showToast('Passkey 验证被取消', 'error');
+        } else {
+          showToast('Passkey 登录失败: ' + error.message, 'error');
+        }
+        
+        // 如果登录失败且有 CLI 回调，也要通知 CLI
+        if (CLI_REDIRECT) {
+          const redirectUrl = new URL(CLI_REDIRECT);
+          redirectUrl.searchParams.set('error', error.message || 'Passkey login failed');
+          setTimeout(() => {
+            window.location.href = redirectUrl.toString();
+          }, 2000);
+        }
+      }
+    }
+
     window.addEventListener('DOMContentLoaded', () => {
-      if (getToken()) {
+      // 如果是 CLI Passkey 登录模式
+      if (PASSKEY_LOGIN && CLI_REDIRECT) {
+        performCliPasskeyLogin();
+      } else if (getToken()) {
         loadUserInfo();
         loadProxies();
       }

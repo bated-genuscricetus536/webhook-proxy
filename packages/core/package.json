@@ -1,0 +1,47 @@
+{
+  "name": "@webhook-proxy/core",
+  "version": "1.0.0",
+  "description": "Webhook proxy core service - 开源 webhook 代理方案",
+  "type": "module",
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "type-check": "tsc --noEmit",
+    "db:migrate": "wrangler d1 migrations apply webhook-proxy-db --remote",
+    "db:migrate:local": "wrangler d1 migrations apply webhook-proxy-db --local",
+    "db:create": "wrangler d1 create webhook-proxy-db",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "webhook",
+    "proxy",
+    "websocket",
+    "sse",
+    "adapter",
+    "github",
+    "gitlab",
+    "cloudflare-workers",
+    "hono",
+    "mfa",
+    "passkey",
+    "webauthn"
+  ],
+  "author": "lc-cn",
+  "license": "MIT",
+  "dependencies": {
+    "@noble/curves": "^2.0.1",
+    "@simplewebauthn/server": "^13.2.2",
+    "hono": "^3.12.0",
+    "nanoid": "^5.0.4",
+    "otpauth": "^9.2.2"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20231218.0",
+    "@types/node": "^20.10.0",
+    "tweetnacl": "^1.0.3",
+    "typescript": "^5.3.3",
+    "wrangler": "^3.19.0"
+  }
+}
+

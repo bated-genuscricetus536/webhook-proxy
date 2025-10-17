@@ -48,12 +48,16 @@ api.get('/proxies', async (c) => {
     const url = new URL(c.req.url);
     const origin = url.origin;
     
+    // 检查是否是 CLI 请求
+    const isCliRequest = c.req.header('X-Client-Type') === 'cli';
+    
     // 获取用户信息，检查是否启用了 MFA/Passkey
     const user = await (await import('../db/users.js')).getUserById(
       (c.env as any).DB,
       userId
     );
-    const requireAuth = user && (user.mfa_enabled || user.passkey_enabled);
+    // CLI 请求时不掩码，Web 请求时如果启用了 MFA/Passkey 则掩码
+    const requireAuth = !isCliRequest && user && (user.mfa_enabled || user.passkey_enabled);
 
     // 导入掩码函数
     const { maskSecret } = await import('../utils/mask.js');
@@ -114,12 +118,16 @@ api.post('/proxies', async (c) => {
     const url = new URL(c.req.url);
     const origin = url.origin;
     
+    // 检查是否是 CLI 请求
+    const isCliRequest = c.req.header('X-Client-Type') === 'cli';
+    
     // 获取用户信息，检查是否启用了 MFA/Passkey
     const user = await (await import('../db/users.js')).getUserById(
       (c.env as any).DB,
       userId
     );
-    const requireAuth = user && (user.mfa_enabled || user.passkey_enabled);
+    // CLI 请求时不掩码，Web 请求时如果启用了 MFA/Passkey 则掩码
+    const requireAuth = !isCliRequest && user && (user.mfa_enabled || user.passkey_enabled);
 
     // 导入掩码函数
     const { maskSecret } = await import('../utils/mask.js');

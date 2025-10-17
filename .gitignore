@@ -1,34 +1,38 @@
 # Dependencies
 node_modules/
+**/node_modules/
 
-# Build output
+# Build outputs
 dist/
+**/dist/
 .wrangler/
-
-# Environment
-.env
-.env.local
-.dev.vars
+**/.wrangler/
 
 # Logs
-logs
 *.log
 npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+*/.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
 .idea/
 *.swp
 *.swo
+*~
 
-# OS
-.DS_Store
-Thumbs.db
+# Environment
+.env
+.dev.vars
+*.local
 
-# Testing
-coverage/
+# pnpm
+.pnpm-store/
+pnpm-lock.yaml
 
-# Cloudflare
-.wrangler/
-worker-configuration.d.ts
-
+# Config
+~/.webhook-proxy/
