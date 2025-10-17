@@ -32,7 +32,7 @@ Thumbs.db
 
 # pnpm
 .pnpm-store/
-pnpm-lock.yaml
+# Note: pnpm-lock.yaml should be committed for consistent dependencies
 
 # Config
 ~/.webhook-proxy/

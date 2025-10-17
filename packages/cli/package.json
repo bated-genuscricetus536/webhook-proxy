@@ -12,6 +12,7 @@
     "dev": "tsc --watch",
     "clean": "rm -rf dist",
     "prepublishOnly": "pnpm run build",
+    "publish": "npm publish --access public",
     "postinstall": "chmod +x ./dist/index.js || true"
   },
   "keywords": [
