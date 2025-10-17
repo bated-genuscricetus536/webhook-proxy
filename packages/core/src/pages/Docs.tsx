@@ -156,9 +156,42 @@ export const Docs: FC<{}> = () => {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <title>文档 - Webhook Proxy</title>
+        
+        {/* Highlight.js */}
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css" />
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/javascript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/typescript.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/json.min.js"></script>
+        
         <style>{docsStyle}</style>
+        <style>{`
+          /* Highlight.js 自定义样式 */
+          pre {
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+          }
+          pre code {
+            display: block;
+            padding: 20px;
+            overflow-x: auto;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+          }
+          .hljs {
+            background: #0d1117 !important;
+          }
+        `}</style>
       </head>
       <body>
+        <script>
+          {`document.addEventListener('DOMContentLoaded', function() {
+            hljs.highlightAll();
+          });`}
+        </script>
         <div class="docs-container">
           <div class="docs-header">
             <h1>📚 Webhook Proxy 文档</h1>
@@ -186,9 +219,7 @@ export const Docs: FC<{}> = () => {
               
               <h3>1. 登录系统</h3>
               <p>访问首页，使用 GitHub 或 GitLab 账号登录：</p>
-              <div class="code-block">
-                http://localhost:8787
-              </div>
+              <pre><code class="language-bash">http://localhost:8787</code></pre>
               <p>点击登录按钮后，系统会引导你完成 OAuth 授权流程。</p>
 
               <h3>2. 创建 Proxy</h3>
@@ -219,8 +250,7 @@ export const Docs: FC<{}> = () => {
 
               <h3>4. 接收事件</h3>
               <p>使用 WebSocket 或 SSE 连接到对应的 URL，开始接收实时事件：</p>
-              <div class="code-block">
-                {`// WebSocket 方式
+              <pre><code class="language-javascript">{`// WebSocket 方式
 const ws = new WebSocket('wss://your-worker.workers.dev/github/xxx/ws');
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -232,8 +262,7 @@ const es = new EventSource('https://your-worker.workers.dev/github/xxx/sse');
 es.onmessage = (event) => {
   const data = JSON.parse(event.data);
   console.log('收到事件:', data);
-};`}
-              </div>
+};`}</code></pre>
             </div>
 
             {/* 用户认证 */}
@@ -251,16 +280,14 @@ es.onmessage = (event) => {
 
               <h3>用户注册</h3>
               <p>新用户可以通过用户名/邮箱/密码注册：</p>
-              <div class="code-block">
-                {`POST /api/account/register
+              <pre><code class="language-bash">{`POST /api/account/register
 Content-Type: application/json
 
 {
   "username": "your-username",
   "email": "your-email@example.com",
   "password": "your-secure-password"
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>账号绑定</h3>
               <p>登录后，可以在设置页面绑定多种登录方式：</p>
@@ -272,9 +299,7 @@ Content-Type: application/json
 
               <h3>Session 管理</h3>
               <p>登录后，系统会设置一个 Session Cookie：</p>
-              <div class="code-block">
-                {`Set-Cookie: session=<token>; Path=/; SameSite=Lax; Max-Age=2592000`}
-              </div>
+              <pre><code class="language-bash">{`Set-Cookie: session=<token>; Path=/; SameSite=Lax; Max-Age=2592000`}</code></pre>
               <p>Session 有效期为 30 天，过期后需要重新登录。</p>
 
               <h3>退出登录</h3>
@@ -350,8 +375,7 @@ Content-Type: application/json
               <h2>⚙️ Proxy 管理</h2>
               
               <h3>创建 Proxy</h3>
-              <div class="code-block">
-                {`POST /api/proxies
+              <pre><code class="language-bash">{`POST /api/proxies
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -360,32 +384,25 @@ Content-Type: application/json
   "platform": "github",
   "webhook_secret": "optional-secret",
   "verify_signature": true
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>列出所有 Proxies</h3>
-              <div class="code-block">
-                {`GET /api/proxies
-Authorization: Bearer <token>`}
-              </div>
+              <pre><code class="language-bash">{`GET /api/proxies
+Authorization: Bearer <token>`}</code></pre>
 
               <h3>更新 Proxy</h3>
-              <div class="code-block">
-                {`PUT /api/proxies/:id
+              <pre><code class="language-bash">{`PUT /api/proxies/:id
 Authorization: Bearer <token>
 Content-Type: application/json
 
 {
   "name": "Updated Name",
   "active": false
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>删除 Proxy</h3>
-              <div class="code-block">
-                {`DELETE /api/proxies/:id
-Authorization: Bearer <token>`}
-              </div>
+              <pre><code class="language-bash">{`DELETE /api/proxies/:id
+Authorization: Bearer <token>`}</code></pre>
 
               <div class="warning">
                 <strong>⚠️ 注意：</strong>删除 Proxy 后，所有关联的 Webhook URL 将失效，且操作不可恢复。
@@ -409,21 +426,18 @@ Authorization: Bearer <token>`}
               </div>
 
               <h3>安装</h3>
-              <div class="code-block">
-                {`# 使用 npm 全局安装
+              <pre><code class="language-bash">{`# 使用 npm 全局安装
 npm install -g webhook-proxy-cli
 
 # 或使用 yarn
 yarn global add webhook-proxy-cli
 
 # 验证安装
-webhook-proxy --version`}
-              </div>
+webhook-proxy --version`}</code></pre>
 
               <h3>快速开始</h3>
               <p><strong>1. 直接登录（官方服务用户）</strong></p>
-              <div class="code-block">
-                {`# 运行登录命令
+              <pre><code class="language-bash">{`# 运行登录命令
 webhook-proxy login
 
 # 选择登录方式：
@@ -435,8 +449,7 @@ webhook-proxy login
 
 # CLI 会自动打开浏览器完成 OAuth 授权
 # 或根据提示输入用户名密码
-# 登录成功后自动保存 session token`}
-              </div>
+# 登录成功后自动保存 session token`}</code></pre>
 
               <div class="info">
                 <strong>💡 官方服务用户无需配置！</strong><br/>
@@ -445,70 +458,57 @@ webhook-proxy login
 
               <p><strong>2. 自建服务用户（可选）</strong></p>
               <p>如果你自建了 webhook-proxy 服务，需要先配置 API 地址：</p>
-              <div class="code-block">
-                {`# 设置自建服务地址
+              <pre><code class="language-bash">{`# 设置自建服务地址
 webhook-proxy config set-api https://your-api-domain.com
 
 # 然后再登录
-webhook-proxy login`}
-              </div>
+webhook-proxy login`}</code></pre>
 
               <h3>常用命令</h3>
               
               <p><strong>列出所有 Proxies：</strong></p>
-              <div class="code-block">
-                {`# 完整命令
+              <pre><code class="language-bash">{`# 完整命令
 webhook-proxy proxy list
 
 # 快捷命令
 webhook-proxy list
-webhook-proxy ls`}
-              </div>
+webhook-proxy ls`}</code></pre>
 
               <p><strong>创建新的 Proxy：</strong></p>
-              <div class="code-block">
-                {`# 交互式创建
+              <pre><code class="language-bash">{`# 交互式创建
 webhook-proxy proxy create
 
 # 按提示输入：
 # - Name: My GitHub Webhook
 # - Platform: github / gitlab / qqbot / telegram
 # - Webhook Secret: 可选
-# - Verify Signature: Yes/No`}
-              </div>
+# - Verify Signature: Yes/No`}</code></pre>
 
               <p><strong>查看 Proxy 详情：</strong></p>
-              <div class="code-block">
-                {`# 使用 Proxy ID
+              <pre><code class="language-bash">{`# 使用 Proxy ID
 webhook-proxy proxy get <proxy-id>
 
 # 快捷命令
-webhook-proxy get <proxy-id>`}
-              </div>
+webhook-proxy get <proxy-id>`}</code></pre>
 
               <p><strong>更新 Proxy：</strong></p>
-              <div class="code-block">
-                {`# 交互式更新
+              <pre><code class="language-bash">{`# 交互式更新
 webhook-proxy proxy update <proxy-id>
 
 # 快捷命令
-webhook-proxy update <proxy-id>`}
-              </div>
+webhook-proxy update <proxy-id>`}</code></pre>
 
               <p><strong>删除 Proxy：</strong></p>
-              <div class="code-block">
-                {`# 删除（需确认）
+              <pre><code class="language-bash">{`# 删除（需确认）
 webhook-proxy proxy delete <proxy-id>
 
 # 快捷命令
 webhook-proxy delete <proxy-id>
 webhook-proxy del <proxy-id>
-webhook-proxy rm <proxy-id>`}
-              </div>
+webhook-proxy rm <proxy-id>`}</code></pre>
 
               <p><strong>配置管理：</strong></p>
-              <div class="code-block">
-                {`# 查看当前配置
+              <pre><code class="language-bash">{`# 查看当前配置
 webhook-proxy config show
 
 # 设置 API 地址（自建服务）
@@ -516,17 +516,13 @@ webhook-proxy config set-api https://your-api-domain.com
 
 # 交互式配置
 webhook-proxy config interactive
-webhook-proxy config i`}
-              </div>
+webhook-proxy config i`}</code></pre>
 
               <p><strong>退出登录：</strong></p>
-              <div class="code-block">
-                {`webhook-proxy logout`}
-              </div>
+              <pre><code class="language-bash">{`webhook-proxy logout`}</code></pre>
 
               <h3>完整工作流示例</h3>
-              <div class="code-block">
-                {`# 1. 登录
+              <pre><code class="language-bash">{`# 1. 登录
 webhook-proxy login
 # 选择 "🔐 GitHub OAuth"
 # ✓ 登录成功！欢迎 your-username
@@ -561,8 +557,7 @@ webhook-proxy update abc123
 
 # 6. 删除 Proxy
 webhook-proxy delete abc123
-# 确认后删除`}
-              </div>
+# 确认后删除`}</code></pre>
 
               <h3>CLI vs Web Dashboard</h3>
               <p>CLI 和 Web Dashboard 各有优势，可以根据场景选择：</p>
@@ -703,8 +698,7 @@ webhook-proxy delete abc123
 
               <h3>事件格式</h3>
               <p>接收到的事件包含以下字段：</p>
-              <div class="code-block">
-                {`{
+              <pre><code class="language-json">{`{
   "id": "github-1234567890-abcdef",
   "type": "push",
   "platform": "github",
@@ -714,12 +708,10 @@ webhook-proxy delete abc123
     "x-github-event": "push",
     "x-github-delivery": "..."
   }
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>WebSocket 连接示例</h3>
-              <div class="code-block">
-                {`const ws = new WebSocket('wss://your-worker.workers.dev/github/xxx/ws');
+              <pre><code class="language-javascript">{`const ws = new WebSocket('wss://your-worker.workers.dev/github/xxx/ws');
 
 ws.onopen = () => {
   console.log('WebSocket 已连接');
@@ -737,12 +729,10 @@ ws.onerror = (error) => {
 
 ws.onclose = () => {
   console.log('WebSocket 已断开');
-};`}
-              </div>
+};`}</code></pre>
 
               <h3>SSE 连接示例</h3>
-              <div class="code-block">
-                {`const eventSource = new EventSource(
+              <pre><code class="language-javascript">{`const eventSource = new EventSource(
   'https://your-worker.workers.dev/github/xxx/sse'
 );
 
@@ -756,8 +746,7 @@ eventSource.onerror = (error) => {
 };
 
 // 关闭连接
-eventSource.close();`}
-              </div>
+eventSource.close();`}</code></pre>
             </div>
 
             {/* QQ Bot 集成 */}
@@ -792,8 +781,7 @@ eventSource.close();`}
                 <li><strong>签名验证</strong>：建议启用（生产环境必须启用）</li>
               </ul>
 
-              <div class="code-block">
-                {`POST /api/proxies
+              <pre><code class="language-bash">{`POST /api/proxies
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -803,8 +791,7 @@ Content-Type: application/json
   "platform_app_id": "102005927",
   "webhook_secret": "your_app_secret_here",
   "verify_signature": true
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>3. 配置 QQ 开放平台</h3>
               <p>在 QQ 机器人管理页面：</p>
@@ -857,8 +844,7 @@ Content-Type: application/json
 
               <h3>5. 接收 QQ Bot 事件</h3>
               <p><strong>WebSocket 方式：</strong></p>
-              <div class="code-block">
-                {`const ws = new WebSocket('wss://your-domain.com/qqbot/xxxxx/ws?token=your_access_token');
+              <pre><code class="language-javascript">{`const ws = new WebSocket('wss://your-domain.com/qqbot/xxxxx/ws?token=your_access_token');
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -879,12 +865,10 @@ ws.onmessage = (event) => {
   //     event_data: { ... }
   //   }
   // }
-};`}
-              </div>
+};`}</code></pre>
 
               <p><strong>SSE 方式：</strong></p>
-              <div class="code-block">
-                {`const es = new EventSource('https://your-domain.com/qqbot/xxxxx/sse?token=your_access_token');
+              <pre><code class="language-javascript">{`const es = new EventSource('https://your-domain.com/qqbot/xxxxx/sse?token=your_access_token');
 
 es.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -897,8 +881,7 @@ es.onmessage = (event) => {
   if (data.type === 'GROUP_AT_MESSAGE_CREATE') {
     console.log('收到群聊 @ 消息:', data.data.event_data);
   }
-};`}
-              </div>
+};`}</code></pre>
 
               <h3>6. Ed25519 签名验证</h3>
               <p>QQ Bot 使用 Ed25519 数字签名算法：</p>
@@ -908,8 +891,7 @@ es.onmessage = (event) => {
               </ul>
               
               <p>验证流程：</p>
-              <div class="code-block">
-                {`// QQ 平台发送请求时携带：
+              <pre><code class="language-bash">{`// QQ 平台发送请求时携带：
 X-Signature-Timestamp: 时间戳
 X-Signature-Ed25519: 签名（hex 编码）
 
@@ -917,8 +899,7 @@ X-Signature-Ed25519: 签名（hex 编码）
 message = timestamp + body
 verify(message, signature, publicKey)
 
-// 签名验证通过后，转发事件`}
-              </div>
+// 签名验证通过后，转发事件`}</code></pre>
 
               <div class="success">
                 <strong>✅ 自动验证：</strong><br/>
@@ -985,8 +966,7 @@ verify(message, signature, publicKey)
                 <li><strong>签名验证</strong>：建议启用</li>
               </ul>
 
-              <div class="code-block">
-                {`POST /api/proxies
+              <pre><code class="language-bash">{`POST /api/proxies
 Authorization: Bearer <token>
 Content-Type: application/json
 
@@ -996,14 +976,12 @@ Content-Type: application/json
   "platform_app_id": "123456789:ABCdefGHIjklMNOpqrsTUVwxyz",
   "webhook_secret": "my-custom-secret-token",
   "verify_signature": true
-}`}
-              </div>
+}`}</code></pre>
 
               <h3>3. 设置 Webhook URL</h3>
               <p>使用 Telegram Bot API 设置 Webhook URL：</p>
 
-              <div class="code-block">
-                {`# 使用 curl 设置 Webhook
+              <pre><code class="language-bash">{`# 使用 curl 设置 Webhook
 curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \\
   -H "Content-Type: application/json" \\
   -d '{
@@ -1012,8 +990,7 @@ curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/setWebhook" \\
   }'
 
 # 验证 Webhook 设置
-curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"`}
-              </div>
+curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"`}</code></pre>
 
               <div class="info">
                 <strong>💡 提示：</strong><br/>
@@ -1056,8 +1033,7 @@ curl "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/getWebhookInfo"`}
 
               <h3>5. 接收 Telegram 事件</h3>
               <p><strong>WebSocket 方式：</strong></p>
-              <div class="code-block">
-                {`const ws = new WebSocket('wss://your-domain.com/telegram/xxxxx/ws?token=your_access_token');
+              <pre><code class="language-javascript">{`const ws = new WebSocket('wss://your-domain.com/telegram/xxxxx/ws?token=your_access_token');
 
 ws.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -1086,12 +1062,10 @@ ws.onmessage = (event) => {
     console.log('消息文本:', msg.text);
     console.log('发送者:', msg.from.username);
   }
-};`}
-              </div>
+};`}</code></pre>
 
               <p><strong>SSE 方式：</strong></p>
-              <div class="code-block">
-                {`const es = new EventSource('https://your-domain.com/telegram/xxxxx/sse?token=your_access_token');
+              <pre><code class="language-javascript">{`const es = new EventSource('https://your-domain.com/telegram/xxxxx/sse?token=your_access_token');
 
 es.onmessage = (event) => {
   const data = JSON.parse(event.data);
@@ -1108,8 +1082,7 @@ es.onmessage = (event) => {
       console.log('内联查询:', data.payload.inline_query.query);
       break;
   }
-};`}
-              </div>
+};`}</code></pre>
 
               <h3>6. Secret Token 验证</h3>
               <p>Secret Token 提供额外的安全保护：</p>
@@ -1120,15 +1093,13 @@ es.onmessage = (event) => {
                 <li>Secret Token 长度应为 1-256 个字符</li>
               </ul>
 
-              <div class="code-block">
-                {`// Telegram 请求头示例：
+              <pre><code class="language-bash">{`// Telegram 请求头示例：
 X-Telegram-Bot-Api-Secret-Token: my-custom-secret-token
 
 // Webhook Proxy 验证流程：
 if (secretToken !== configured_secret_token) {
   return 401 Unauthorized;
-}`}
-              </div>
+}`}</code></pre>
 
               <div class="success">
                 <strong>✅ 最佳实践：</strong><br/>
@@ -1156,9 +1127,7 @@ if (secretToken !== configured_secret_token) {
               </ul>
 
               <p><strong>删除 Webhook：</strong></p>
-              <div class="code-block">
-                {`curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook"`}
-              </div>
+              <pre><code class="language-bash">{`curl -X POST "https://api.telegram.org/bot<YOUR_BOT_TOKEN>/deleteWebhook"`}</code></pre>
 
               <div class="info">
                 <strong>💡 获取更多帮助：</strong><br/>
@@ -1240,9 +1209,7 @@ if (secretToken !== configured_secret_token) {
               </div>
 
               <p><strong>3. 推送代码自动部署</strong></p>
-              <div class="code-block">
-                {`git push origin master`}
-              </div>
+              <pre><code class="language-bash">{`git push origin master`}</code></pre>
 
               <p>GitHub Actions 会自动：</p>
               <ul>
@@ -1272,8 +1239,7 @@ if (secretToken !== configured_secret_token) {
               </ul>
 
               <h3>本地开发</h3>
-              <div class="code-block">
-                {`# 安装依赖
+              <pre><code class="language-bash">{`# 安装依赖
 npm install
 
 # 配置环境变量
@@ -1283,12 +1249,10 @@ cp .dev.vars.example .dev.vars
 npm run db:migrate:local
 
 # 启动开发服务器
-npm run dev`}
-              </div>
+npm run dev`}</code></pre>
 
               <h3>部署到 Cloudflare</h3>
-              <div class="code-block">
-                {`# 登录 Cloudflare
+              <pre><code class="language-bash">{`# 登录 Cloudflare
 npx wrangler login
 
 # 创建 D1 数据库
@@ -1307,8 +1271,7 @@ npx wrangler secret put JWT_SECRET
 npx wrangler secret put RESEND_API_KEY
 
 # 部署
-npm run deploy`}
-              </div>
+npm run deploy`}</code></pre>
 
               <div class="success">
                 <strong>✅ 部署完成！</strong><br/>
