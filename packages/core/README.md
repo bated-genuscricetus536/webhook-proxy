@@ -250,5 +250,5 @@ MIT
 
 ## 相关项目
 
-- [@webhook-proxy/cli](../cli) - 命令行工具
+- [webhook-proxy-cli](../cli) - 命令行工具
 

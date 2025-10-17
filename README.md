@@ -53,7 +53,7 @@
 - **认证**: OAuth 2.0, WebAuthn
 - **语言**: TypeScript 5.3+
 
-#### CLI 工具 (`@webhook-proxy/cli`)
+#### CLI 工具 (`webhook-proxy-cli`)
 - **运行时**: Node.js 18+
 - **框架**: Commander.js
 - **UI**: Chalk + Ora + Inquirer
@@ -84,7 +84,7 @@ webhook-proxy/
 │   │   ├── wrangler.toml        # Cloudflare Workers 配置
 │   │   └── package.json
 │   │
-│   └── cli/                     # CLI 工具 (@webhook-proxy/cli)
+│   └── cli/                     # CLI 工具 (webhook-proxy-cli)
 │       ├── src/
 │       │   ├── commands/        # CLI 命令
 │       │   ├── config.ts        # 配置管理
@@ -307,7 +307,7 @@ pnpm deploy
 #### 从 npm 安装
 
 ```bash
-npm install -g @webhook-proxy/cli
+npm install -g webhook-proxy-cli
 ```
 
 #### 从源码安装
@@ -435,12 +435,12 @@ pnpm db:create          # 创建数据库
 ```bash
 # 在特定包中运行命令
 pnpm --filter @webhook-proxy/core <command>
-pnpm --filter @webhook-proxy/cli <command>
+pnpm --filter webhook-proxy-cli <command>
 
 # 示例
 pnpm --filter @webhook-proxy/core dev
-pnpm --filter @webhook-proxy/cli build
-pnpm --filter @webhook-proxy/cli type-check
+pnpm --filter webhook-proxy-cli build
+pnpm --filter webhook-proxy-cli type-check
 ```
 
 ### 本地开发工作流
@@ -1032,7 +1032,7 @@ SOFTWARE.
 - **GitHub**: https://github.com/lc-cn/webhook-proxy
 - **Issues**: https://github.com/lc-cn/webhook-proxy/issues
 - **Cloudflare Workers**: https://workers.cloudflare.com/
-- **npm Package** (@webhook-proxy/cli): https://www.npmjs.com/package/@webhook-proxy/cli
+- **npm Package** (webhook-proxy-cli): https://www.npmjs.com/package/webhook-proxy-cli
 
 ---
 

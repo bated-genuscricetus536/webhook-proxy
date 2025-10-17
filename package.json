@@ -5,7 +5,7 @@
   "description": "Monorepo for webhook-proxy core and CLI",
   "scripts": {
     "dev": "pnpm --filter @webhook-proxy/core dev",
-    "dev:cli": "pnpm --filter @webhook-proxy/cli dev",
+    "dev:cli": "pnpm --filter webhook-proxy-cli dev",
     "build": "pnpm -r build",
     "build:core": "pnpm --filter @webhook-proxy/core build",
     "build:cli": "pnpm --filter webhook-proxy-cli build",

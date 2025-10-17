@@ -38,10 +38,10 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: 🔍 Type check
-        run: pnpm --filter @webhook-proxy/cli type-check
+        run: pnpm --filter webhook-proxy-cli type-check
 
       - name: 🏗️ Build CLI
-        run: pnpm --filter @webhook-proxy/cli build
+        run: pnpm --filter webhook-proxy-cli build
 
       - name: 🔄 Replace default API URL in built files
         run: |
@@ -73,12 +73,12 @@ jobs:
         run: |
           echo "### 🎉 CLI 发布成功！" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **包名**: @webhook-proxy/cli" >> $GITHUB_STEP_SUMMARY
+          echo "- **包名**: webhook-proxy-cli" >> $GITHUB_STEP_SUMMARY
           echo "- **版本**: $(cat packages/cli/package.json | grep version | head -1 | awk -F: '{ print $2 }' | sed 's/[",]//g' | tr -d '[[:space:]]')" >> $GITHUB_STEP_SUMMARY
           echo "- **时间**: $(date +'%Y-%m-%d %H:%M:%S')" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "安装命令:" >> $GITHUB_STEP_SUMMARY
           echo '```bash' >> $GITHUB_STEP_SUMMARY
-          echo "npm install -g @webhook-proxy/cli" >> $GITHUB_STEP_SUMMARY
+          echo "npm install -g webhook-proxy-cli" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
