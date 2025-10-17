@@ -170,6 +170,7 @@ export const Docs: FC<{}> = () => {
             <a href="#authentication">用户认证</a>
             <a href="#security">安全特性</a>
             <a href="#proxy-management">Proxy 管理</a>
+            <a href="#cli-tool">CLI 工具</a>
             <a href="#webhook-usage">Webhook 使用</a>
             <a href="#qqbot-integration">QQ Bot 集成</a>
             <a href="#telegram-integration">Telegram 集成</a>
@@ -388,6 +389,296 @@ Authorization: Bearer <token>`}
 
               <div class="warning">
                 <strong>⚠️ 注意：</strong>删除 Proxy 后，所有关联的 Webhook URL 将失效，且操作不可恢复。
+              </div>
+            </div>
+
+            {/* CLI 工具 */}
+            <div class="docs-section" id="cli-tool">
+              <h2>💻 CLI 命令行工具</h2>
+              
+              <p>除了 Web Dashboard，我们还提供了强大的命令行工具，让你在终端中快速管理 Proxies！</p>
+
+              <div class="success">
+                <strong>🌟 为什么选择 CLI？</strong><br/>
+                - 🌐 <strong>开箱即用</strong>：默认连接到官方服务 https://hooks.zhin.dev<br/>
+                - 🚀 <strong>更快捷</strong>：无需打开浏览器，命令行操作更高效<br/>
+                - 🔐 <strong>多种登录</strong>：支持 GitHub、GitLab、密码、Passkey<br/>
+                - 🛡️ <strong>完整信息</strong>：显示完整的 access_token 和 webhook_secret<br/>
+                - 🎨 <strong>友好界面</strong>：彩色输出和交互式命令<br/>
+                - ⚙️ <strong>可自建</strong>：支持连接到自己部署的服务
+              </div>
+
+              <h3>安装</h3>
+              <div class="code-block">
+                {`# 使用 npm 全局安装
+npm install -g webhook-proxy-cli
+
+# 或使用 yarn
+yarn global add webhook-proxy-cli
+
+# 验证安装
+webhook-proxy --version`}
+              </div>
+
+              <h3>快速开始</h3>
+              <p><strong>1. 直接登录（官方服务用户）</strong></p>
+              <div class="code-block">
+                {`# 运行登录命令
+webhook-proxy login
+
+# 选择登录方式：
+# ❯ 🔐 GitHub OAuth（推荐）
+#   🦊 GitLab OAuth
+#   👤 用户名/邮箱 + 密码
+#   🔑 Passkey / 指纹 / Face ID
+#   📋 手动输入 Token
+
+# CLI 会自动打开浏览器完成 OAuth 授权
+# 或根据提示输入用户名密码
+# 登录成功后自动保存 session token`}
+              </div>
+
+              <div class="info">
+                <strong>💡 官方服务用户无需配置！</strong><br/>
+                CLI 默认连接到 <span class="inline-code">https://hooks.zhin.dev</span>，直接登录即可使用。
+              </div>
+
+              <p><strong>2. 自建服务用户（可选）</strong></p>
+              <p>如果你自建了 webhook-proxy 服务，需要先配置 API 地址：</p>
+              <div class="code-block">
+                {`# 设置自建服务地址
+webhook-proxy config set-api https://your-api-domain.com
+
+# 然后再登录
+webhook-proxy login`}
+              </div>
+
+              <h3>常用命令</h3>
+              
+              <p><strong>列出所有 Proxies：</strong></p>
+              <div class="code-block">
+                {`# 完整命令
+webhook-proxy proxy list
+
+# 快捷命令
+webhook-proxy list
+webhook-proxy ls`}
+              </div>
+
+              <p><strong>创建新的 Proxy：</strong></p>
+              <div class="code-block">
+                {`# 交互式创建
+webhook-proxy proxy create
+
+# 按提示输入：
+# - Name: My GitHub Webhook
+# - Platform: github / gitlab / qqbot / telegram
+# - Webhook Secret: 可选
+# - Verify Signature: Yes/No`}
+              </div>
+
+              <p><strong>查看 Proxy 详情：</strong></p>
+              <div class="code-block">
+                {`# 使用 Proxy ID
+webhook-proxy proxy get <proxy-id>
+
+# 快捷命令
+webhook-proxy get <proxy-id>`}
+              </div>
+
+              <p><strong>更新 Proxy：</strong></p>
+              <div class="code-block">
+                {`# 交互式更新
+webhook-proxy proxy update <proxy-id>
+
+# 快捷命令
+webhook-proxy update <proxy-id>`}
+              </div>
+
+              <p><strong>删除 Proxy：</strong></p>
+              <div class="code-block">
+                {`# 删除（需确认）
+webhook-proxy proxy delete <proxy-id>
+
+# 快捷命令
+webhook-proxy delete <proxy-id>
+webhook-proxy del <proxy-id>
+webhook-proxy rm <proxy-id>`}
+              </div>
+
+              <p><strong>配置管理：</strong></p>
+              <div class="code-block">
+                {`# 查看当前配置
+webhook-proxy config show
+
+# 设置 API 地址（自建服务）
+webhook-proxy config set-api https://your-api-domain.com
+
+# 交互式配置
+webhook-proxy config interactive
+webhook-proxy config i`}
+              </div>
+
+              <p><strong>退出登录：</strong></p>
+              <div class="code-block">
+                {`webhook-proxy logout`}
+              </div>
+
+              <h3>完整工作流示例</h3>
+              <div class="code-block">
+                {`# 1. 登录
+webhook-proxy login
+# 选择 "🔐 GitHub OAuth"
+# ✓ 登录成功！欢迎 your-username
+
+# 2. 查看现有 Proxies
+webhook-proxy list
+# 显示所有 Proxy 列表
+
+# 3. 创建新的 GitHub Proxy
+webhook-proxy create
+# Name: My Project
+# Platform: github
+# Webhook Secret: my-secret-key
+# Verify Signature: Yes
+# ✓ Proxy 创建成功！
+
+# 4. 查看 Proxy 详情（包含完整 access_token）
+webhook-proxy get abc123
+# 显示完整信息，包括：
+# - ID
+# - Name
+# - Platform
+# - Webhook URL
+# - WebSocket URL
+# - SSE URL
+# - Access Token（完整，不掩码）
+# - Webhook Secret（完整，不掩码）
+
+# 5. 更新 Proxy
+webhook-proxy update abc123
+# 按提示修改信息
+
+# 6. 删除 Proxy
+webhook-proxy delete abc123
+# 确认后删除`}
+              </div>
+
+              <h3>CLI vs Web Dashboard</h3>
+              <p>CLI 和 Web Dashboard 各有优势，可以根据场景选择：</p>
+              
+              <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                <thead>
+                  <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+                    <th style="padding: 12px; text-align: left; border: 1px solid #e2e8f0;">功能</th>
+                    <th style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">CLI</th>
+                    <th style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">Web Dashboard</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">快速操作</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 极快</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">⚪ 中等</td>
+                  </tr>
+                  <tr style="background: #f8fafc;">
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">显示完整 Secret</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 始终显示</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">⚠️ MFA/Passkey 掩码</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">批量操作</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 适合</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">⚪ 一般</td>
+                  </tr>
+                  <tr style="background: #f8fafc;">
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">脚本自动化</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 完美</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">❌ 不支持</td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">可视化界面</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">⚪ 文本</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 图形化</td>
+                  </tr>
+                  <tr style="background: #f8fafc;">
+                    <td style="padding: 12px; border: 1px solid #e2e8f0;">适合新手</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">⚪ 需学习</td>
+                    <td style="padding: 12px; text-align: center; border: 1px solid #e2e8f0;">✅ 更直观</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div class="info">
+                <strong>💡 推荐使用场景：</strong><br/>
+                - <strong>CLI</strong>：开发人员、DevOps、自动化脚本、快速操作、需要完整 Secret<br/>
+                - <strong>Web Dashboard</strong>：新手、可视化操作、安全管理（启用 MFA/Passkey）
+              </div>
+
+              <h3>📦 GitHub 仓库</h3>
+              <p>Webhook Proxy 是一个开源项目，欢迎查看源码、提交 Issue 和贡献代码！</p>
+              
+              <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; color: white; margin: 30px 0;">
+                <div style="display: flex; align-items: center; gap: 20px; flex-wrap: wrap;">
+                  <div style="flex: 1; min-width: 250px;">
+                    <h3 style="margin: 0 0 15px 0; font-size: 1.8em;">⭐ 给我们一个 Star！</h3>
+                    <p style="margin: 0 0 15px 0; font-size: 1.1em; opacity: 0.95;">
+                      如果你觉得这个项目有用，请在 GitHub 上给我们一个 Star！<br/>
+                      这是对开发者最大的鼓励和支持 🙏
+                    </p>
+                    <a 
+                      href="https://github.com/lc-cn/webhook-proxy" 
+                      target="_blank" 
+                      rel="noopener"
+                      style="display: inline-block; background: white; color: #667eea; padding: 12px 30px; border-radius: 25px; text-decoration: none; font-weight: 700; font-size: 1.1em; box-shadow: 0 4px 15px rgba(0,0,0,0.2); transition: all 0.3s;"
+                      onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.3)'"
+                      onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.2)'"
+                    >
+                      ⭐ Star on GitHub
+                    </a>
+                  </div>
+                  <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; min-width: 200px;">
+                    <div style="margin-bottom: 15px;">
+                      <strong style="font-size: 1.1em;">📂 主仓库</strong><br/>
+                      <a href="https://github.com/lc-cn/webhook-proxy" target="_blank" rel="noopener" style="color: white; text-decoration: underline;">
+                        github.com/lc-cn/webhook-proxy
+                      </a>
+                    </div>
+                    <div>
+                      <strong style="font-size: 1.1em;">💻 CLI 包</strong><br/>
+                      <a href="https://www.npmjs.com/package/webhook-proxy-cli" target="_blank" rel="noopener" style="color: white; text-decoration: underline;">
+                        npmjs.com/package/webhook-proxy-cli
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="success">
+                <strong>🎉 加入社区！</strong><br/>
+                - 🐛 <a href="https://github.com/lc-cn/webhook-proxy/issues" target="_blank" rel="noopener">报告 Bug</a> - 遇到问题？提交 Issue<br/>
+                - 💡 <a href="https://github.com/lc-cn/webhook-proxy/issues/new?labels=enhancement" target="_blank" rel="noopener">功能建议</a> - 有好想法？告诉我们<br/>
+                - 🤝 <a href="https://github.com/lc-cn/webhook-proxy/pulls" target="_blank" rel="noopener">贡献代码</a> - Pull Request 欢迎<br/>
+                - 📖 <a href="https://github.com/lc-cn/webhook-proxy#readme" target="_blank" rel="noopener">阅读文档</a> - 完整使用指南<br/>
+                - ⭐ <a href="https://github.com/lc-cn/webhook-proxy/stargazers" target="_blank" rel="noopener">Star 项目</a> - 支持我们持续开发
+              </div>
+
+              <h3>技术栈</h3>
+              <p>了解项目使用的技术：</p>
+              <ul>
+                <li><strong>CLI</strong>：TypeScript + Commander.js + Inquirer.js + Chalk + Ora</li>
+                <li><strong>后端</strong>：Cloudflare Workers + Hono + D1 + KV + Durable Objects</li>
+                <li><strong>前端</strong>：Hono JSX + Vanilla JavaScript</li>
+                <li><strong>认证</strong>：OAuth 2.0 + WebAuthn (Passkey) + TOTP (MFA)</li>
+                <li><strong>CI/CD</strong>：GitHub Actions + pnpm Monorepo</li>
+              </ul>
+
+              <div class="info">
+                <strong>📚 更多资源：</strong><br/>
+                - CLI 完整文档：查看项目仓库的 <span class="inline-code">packages/cli/README.md</span><br/>
+                - 部署指南：<a href="#deployment">手动部署</a> 或 <a href="#ci-cd">CI/CD 自动部署</a><br/>
+                - 示例代码：<span class="inline-code">examples/</span> 目录<br/>
+                - 变更日志：<span class="inline-code">CHANGELOG.md</span>
               </div>
             </div>
 
